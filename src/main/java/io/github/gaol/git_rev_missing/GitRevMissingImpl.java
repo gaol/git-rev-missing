@@ -19,8 +19,6 @@ import java.util.Objects;
 
 class GitRevMissingImpl implements GitRevMissing {
 
-    // milliseconds in a month
-    private static final long MONTH_MILLI = 2629800000L;
     private static final SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
 
     private final RepositoryService repoService;
@@ -32,6 +30,8 @@ class GitRevMissingImpl implements GitRevMissing {
     }
 
     private final SupportedType type;
+
+    private boolean debug;
 
     GitRevMissingImpl(URI gitURI, String user, String pass) {
         super();
@@ -54,6 +54,12 @@ class GitRevMissingImpl implements GitRevMissing {
     }
 
     @Override
+    public GitRevMissingImpl setDebug(boolean debug) {
+        this.debug = debug;
+        return this;
+    }
+
+    @Override
     public MissingCommit missingCommits(String owner, String repo, String revA, String revB) {
         return missingCommits(owner, repo, revA, revB, Instant.now().toEpochMilli() - 6 * MONTH_MILLI);
     }
@@ -66,9 +72,13 @@ class GitRevMissingImpl implements GitRevMissing {
             List<Commit> revBList = repoService.getCommitsSince(repoURL, revB, since);
             if (revAList.isEmpty()) {
                 System.out.println("# no commits found in: " + revA + " since: " + dateString(since));
+            } else if (debug) {
+                printList("RevA", revAList);
             }
             if (revBList.isEmpty()) {
                 System.out.println("# no commits found in: " + revB + " since: " + dateString(since));
+            } else if (debug) {
+                printList("RevB", revBList);
             }
             List<CommitInfo> missingInB = new ArrayList<>();
             for (Commit commitInA: revAList) {
@@ -87,6 +97,14 @@ class GitRevMissingImpl implements GitRevMissing {
             e.printStackTrace();
             return null;
         }
+    }
+
+    private void printList(String head, List<Commit> commits) {
+        System.out.println("\n===========  [DEBUG INFO " + head + "]  ===========");
+        for (Commit commit: commits) {
+            System.out.println(commit);
+        }
+        System.out.println("===========  [DEBUG INFO END " + head + "]  ===========\n");
     }
 
     private String gitCommitLink(String repoURL, String sha) {
