@@ -26,6 +26,13 @@ class GitRevMissingImpl implements GitRevMissing {
     private final RepositoryService repoService;
     private final URI gitURI;
 
+    private enum SupportedType {
+        GITHUB,
+        GITLAB
+    }
+
+    private final SupportedType type;
+
     GitRevMissingImpl(URI gitURI, String user, String pass) {
         super();
         Objects.requireNonNull(gitURI, "URI of the git service must be provided");
@@ -33,9 +40,11 @@ class GitRevMissingImpl implements GitRevMissing {
         if (gitURI.getHost().contains("github.com")) {
             repoType = RepositoryType.GITHUB;
             repoService = new GitHubRepositoryService();
+            type = SupportedType.GITHUB;
         } else if (gitURI.getHost().contains("gitlab")) {
             repoType = RepositoryType.GITLAB;
             repoService = new GitLabRepositoryService();
+            type = SupportedType.GITLAB;
         } else {
             throw new RuntimeException("Not supported for Git service: " + gitURI.toString());
         }
@@ -52,28 +61,41 @@ class GitRevMissingImpl implements GitRevMissing {
     @Override
     public MissingCommit missingCommits(String owner, String repo, String revA, String revB, long since) {
         try {
-            URL url = new URL(gitURI.toString() + "/" + owner + "/" + repo);
-            List<Commit> revAList = repoService.getCommitsSince(url, revA, since);
-            List<Commit> revBList = repoService.getCommitsSince(url, revB, since);
+            URL repoURL = new URL(gitURI.toString() + "/" + owner + "/" + repo);
+            List<Commit> revAList = repoService.getCommitsSince(repoURL, revA, since);
+            List<Commit> revBList = repoService.getCommitsSince(repoURL, revB, since);
             if (revAList.isEmpty()) {
                 System.out.println("# no commits found in: " + revA + " since: " + dateString(since));
             }
             if (revBList.isEmpty()) {
                 System.out.println("# no commits found in: " + revB + " since: " + dateString(since));
             }
-            List<Commit> missingInB = new ArrayList<>();
+            List<CommitInfo> missingInB = new ArrayList<>();
             for (Commit commitInA: revAList) {
                 if (!commitInList(commitInA, revBList)) {
-                    missingInB.add(commitInA);
+                    CommitInfo commitInfo = new CommitInfo();
+                    commitInfo.setCommit(commitInA);
+                    commitInfo.setCommitLink(gitCommitLink(repoURL.toString(), commitInA.getSha()));
+                    missingInB.add(commitInfo);
                 }
             }
             MissingCommit missingCommit = new MissingCommit();
+
             missingCommit.setCommits(missingInB);
             return missingCommit;
         } catch (MalformedURLException e) {
             e.printStackTrace();
             return null;
         }
+    }
+
+    private String gitCommitLink(String repoURL, String sha) {
+        if (type == SupportedType.GITHUB) {
+            return repoURL + "/commit/" + sha;
+        } else if (type == SupportedType.GITLAB) {
+            return repoURL + "~/commit/" + sha;
+        }
+        return repoURL + "/commit/" + sha;
     }
 
     private static String dateString(long since) {

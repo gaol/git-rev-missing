@@ -6,13 +6,13 @@ import java.util.List;
 
 public class MissingCommit {
 
-    private List<Commit> commits;
+    private List<CommitInfo> commits;
 
-    public List<Commit> getCommits() {
+    public List<CommitInfo> getCommits() {
         return commits;
     }
 
-    public MissingCommit setCommits(List<Commit> commits) {
+    public MissingCommit setCommits(List<CommitInfo> commits) {
         this.commits = commits;
         return this;
     }
@@ -23,17 +23,10 @@ public class MissingCommit {
 
     @Override
     public String toString() {
-        return toString(null, false);
-    }
-
-    public String toString(String rootURI, boolean link) {
         StringBuilder sb = new StringBuilder();
         sb.append("MissingCommits:[\n");
-        for (Commit commit: commits) {
+        for (CommitInfo commit: commits) {
             sb.append(commit.toString()).append("\n");
-            if (link && rootURI != null) {
-                sb.append("Link: ").append(rootURI + "/" + commit.getSha());
-            }
         }
         sb.append("]");
         return sb.toString();
