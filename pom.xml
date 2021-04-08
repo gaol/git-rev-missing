@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.gaol</groupId>
+        <artifactId>java-parent</artifactId>
+        <version>1.0.1</version>
+    </parent>
+
+	<artifactId>git-rev-missing</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <packaging>jar</packaging>
+    <name>Git Revision Missing</name>
+    <description>A simple Java API to list missing commits between 2 versions</description>
+
+    <properties>
+        <aphrodite.version>0.7.13.Final</aphrodite.version>
+        <testng.version>6.8.7</testng.version>
+    </properties>
+
+	<licenses>
+		<license>
+			<name>The Apache Software License, Version 2.0</name>
+			<url>http://www.apache.org/licenses/LICENSE-2.0</url>
+			<distribution>repo</distribution>
+		</license>
+	</licenses>
+
+	<scm>
+		<connection>scm:git:git@github.com:gaol/git-rev-missing.git</connection>
+		<developerConnection>scm:git:git@github.com:gaol/git-rev-missing.git</developerConnection>
+		<url>https://github.com/gaol/git-rev-missing</url>
+		<tag>HEAD</tag>
+	</scm>
+
+	<developers>
+		<developer>
+			<id>project-lead</id>
+			<name>Lin Gao</name>
+			<organization>OpenSource Developer</organization>
+			<organizationUrl>https://github.com/gaol/</organizationUrl>
+			<url>https://github.com/gaol/</url>
+		</developer>
+	</developers>
+
+    <dependencies>
+
+        <dependency>
+            <groupId>org.jboss.set</groupId>
+            <artifactId>jboss-aphrodite-github</artifactId>
+            <version>${aphrodite.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jboss.set</groupId>
+            <artifactId>jboss-aphrodite-gitlab</artifactId>
+            <version>${aphrodite.version}</version>
+        </dependency>
+
+        <!-- Test dependencies -->
+        <dependency>
+            <groupId>org.testng</groupId>
+            <artifactId>testng</artifactId>
+            <version>${testng.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <repositories>
+        <repository>
+            <id>atlassian-public</id>
+            <url>https://maven.atlassian.com/maven-external</url>
+            <snapshots>
+                <enabled>true</enabled>
+                <checksumPolicy>warn</checksumPolicy>
+            </snapshots>
+            <releases>
+                <enabled>true</enabled>
+                <checksumPolicy>warn</checksumPolicy>
+            </releases>
+        </repository>
+    </repositories>
+
+</project>
