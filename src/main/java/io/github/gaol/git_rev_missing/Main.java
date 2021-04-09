@@ -1,8 +1,11 @@
 package io.github.gaol.git_rev_missing;
 
+import org.jboss.set.aphrodite.repository.services.common.RepositoryUtils;
 import picocli.CommandLine;
 
+import java.io.File;
 import java.net.URI;
+import java.net.URL;
 import java.util.concurrent.Callable;
 
 @CommandLine.Command(name = "git-rev-missing", mixinStandardHelpOptions = true, version = "0.0.1",
@@ -24,6 +27,9 @@ public class Main implements Callable<Integer> {
     @CommandLine.Option(names = {"-d", "--debug"}, description = "debug for verbose info", defaultValue = "false")
     private boolean debug;
 
+    @CommandLine.Option(paramLabel = "FILE", names = {"-c", "--config"}, description = "Config file, content is in JSON format.")
+    private File configFile;
+
     @Override
     public Integer call() throws Exception {
         // for gitlab, like: https://gitlab.xxx.com/owner/repo/-/compare/revB...revA
@@ -37,19 +43,18 @@ public class Main implements Callable<Integer> {
         revB = compareURL.substring(dotsIdx + 3);
         int lastSlash = compareURL.lastIndexOf("/");
         revA = compareURL.substring(lastSlash + 1, dotsIdx);
-        URI leftURI = new URI(compareURL.substring(0, lastSlash));
-        String path = leftURI.getPath();
-        String hostPart = compareURL.substring(0, compareURL.indexOf(path));
-        if (leftURI.getHost().contains("gitlab")) {
+        final String gitRepoURL = compareURL.substring(0, lastSlash);
+        URL gitURL = new URL(gitRepoURL);
+        if (gitURL.getHost().contains("gitlab")) {
             // switch revA and revB
             String tmp = revA;
             revA = revB;
             revB = tmp;
         }
-        URI gitRoot = new URI(hostPart);
-        String[] parseplist = path.substring(1).split("/");
-        owner = parseplist[0];
-        repo = parseplist[1];
+        URL gitRoot = RepoUtils.canonicRepoURL(gitRepoURL);
+        String[] repoID = RepositoryUtils.createRepositoryIdFromUrl(gitURL).split("/");
+        owner = repoID[0];
+        repo = repoID[1];
         if (debug) {
             System.out.println("gitRoot: " + gitRoot + ", owner: " + owner + ", repo: " + repo + ", revA: " + revA + ", revB: " + revB);
         }

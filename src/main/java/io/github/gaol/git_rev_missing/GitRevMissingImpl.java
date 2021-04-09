@@ -4,7 +4,6 @@ import org.jboss.set.aphrodite.domain.Commit;
 import org.jboss.set.aphrodite.spi.RepositoryService;
 
 import java.net.MalformedURLException;
-import java.net.URI;
 import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
@@ -21,15 +20,15 @@ class GitRevMissingImpl implements GitRevMissing {
 
     private final RepositoryService repoService;
     private final String repoServiceKey;
-    private final URI gitURI;
+    private final URL gitURL;
     private boolean debug;
 
-    GitRevMissingImpl(URI gitURI, String user, String pass) {
+    GitRevMissingImpl(URL gitURL, String user, String pass) {
         super();
-        Objects.requireNonNull(gitURI, "URI of the git service must be provided");
-        repoServiceKey = gitURI.getHost() + ":" + user;
-        repoService = RepositoryServices.getInstance().getRepositoryService(gitURI, user, pass);
-        this.gitURI = gitURI;
+        Objects.requireNonNull(gitURL, "URI of the git service must be provided");
+        repoServiceKey = gitURL.getHost() + ":" + user;
+        repoService = RepositoryServices.getInstance().getRepositoryService(gitURL, user, pass);
+        this.gitURL = gitURL;
     }
 
     @Override
@@ -46,7 +45,7 @@ class GitRevMissingImpl implements GitRevMissing {
     @Override
     public MissingCommit missingCommits(String owner, String repo, String revA, String revB, long since) {
         try {
-            URL repoURL = new URL(gitURI.toString() + "/" + owner + "/" + repo);
+            URL repoURL = new URL(gitURL.toString() + "/" + owner + "/" + repo);
             List<Commit> revAList = repoService.getCommitsSince(repoURL, revA, since);
             List<Commit> revBList = repoService.getCommitsSince(repoURL, revB, since);
             if (revAList.isEmpty()) {

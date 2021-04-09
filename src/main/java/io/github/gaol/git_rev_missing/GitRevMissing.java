@@ -1,14 +1,14 @@
 package io.github.gaol.git_rev_missing;
 
-import java.net.URI;
+import java.net.URL;
 
 public interface GitRevMissing {
 
     // milliseconds in a month
     long MONTH_MILLI = 2629800000L;
 
-    static GitRevMissing create(URI gitURI, String user, String pass) {
-        return new GitRevMissingImpl(gitURI, user, pass);
+    static GitRevMissing create(URL gitURL, String user, String pass) {
+        return new GitRevMissingImpl(gitURL, user, pass);
     }
 
     GitRevMissing setDebug(boolean debug);

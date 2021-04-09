@@ -6,7 +6,7 @@ import org.jboss.set.aphrodite.repository.services.github.GitHubRepositoryServic
 import org.jboss.set.aphrodite.repository.services.gitlab.GitLabRepositoryService;
 import org.jboss.set.aphrodite.spi.RepositoryService;
 
-import java.net.URI;
+import java.net.URL;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -23,22 +23,22 @@ class RepositoryServices {
 
     private Map<String, RepositoryService> repositoryServiceMap = new ConcurrentHashMap<>();
 
-    RepositoryService getRepositoryService(URI gitURI, String username, String password) {
-        final String key = gitURI.getHost() + ":" + username;
+    RepositoryService getRepositoryService(URL gitURL, String username, String password) {
+        final String key = gitURL.getHost() + ":" + username;
         return repositoryServiceMap.computeIfAbsent(key, rs -> {
             RepositoryType repoType;
             RepositoryService repoService;
-            if (gitURI.getHost().contains("github.com")) {
+            if (gitURL.getHost().contains("github.com")) {
                 repoType = RepositoryType.GITHUB;
                 repoService = new GitHubRepositoryService();
-            } else if (gitURI.getHost().contains("gitlab")) {
+            } else if (gitURL.getHost().contains("gitlab")) {
                 repoType = RepositoryType.GITLAB;
                 repoService = new GitLabRepositoryService();
             } else {
                 //TODO support gitweb?
-                throw new RuntimeException("Not supported for Git service: " + gitURI.toString());
+                throw new RuntimeException("Not supported for Git service: " + gitURL.toString());
             }
-            RepositoryConfig repoConfig = new RepositoryConfig(gitURI.toString(), username, password, repoType);
+            RepositoryConfig repoConfig = new RepositoryConfig(gitURL.toString(), username, password, repoType);
             repoService.init(repoConfig);
             return repoService;
         });
