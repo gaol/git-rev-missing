@@ -22,9 +22,9 @@ public class MissingCommit {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("MissingCommits:[\n");
+        sb.append("\tMissingCommits:[\n");
         for (CommitInfo commit: commits) {
-            sb.append(commit.toString()).append("\n");
+            sb.append("\t").append(commit.toString()).append("\n");
         }
         sb.append("]");
         return sb.toString();

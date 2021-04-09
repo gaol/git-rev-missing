@@ -55,9 +55,6 @@ final class RepoUtils {
         try {
             URL repo = canonicRepoURL(repoURL);
             if (repo != null) {
-                if (repo.toString().contains("gitlab")) {
-                    return repo + "/~/commit/" + sha;
-                }
                 return repo.toString() + "/commit/" + sha;
             }
             return "<Not Known>";

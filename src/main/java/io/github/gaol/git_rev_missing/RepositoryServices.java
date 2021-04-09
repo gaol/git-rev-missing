@@ -21,10 +21,10 @@ class RepositoryServices {
         return instance;
     }
 
-    private final Map<String, RepositoryService> repositoryServiceMap = new ConcurrentHashMap<>();
+    private final Map<String, RepoService> repositoryServiceMap = new ConcurrentHashMap<>();
     private final Map<String, RepositoryConfig> configMap = new ConcurrentHashMap<>();
 
-    RepositoryService getRepositoryService(URL gitURL, String username, String password) {
+    RepoService getRepositoryService(URL gitURL, String username, String password) {
         final String key = gitURL.getHost() + ":" + username;
         final RepositoryConfig config = configMap.computeIfAbsent(key, c -> {
             RepositoryType repoType;
@@ -49,12 +49,14 @@ class RepositoryServices {
                 throw new RuntimeException("Not supported for Git service: " + gitURL.toString());
             }
             repoService.init(config);
-            return repoService;
+            RepoService service = new RepoService();
+            service.setRepoService(repoService);
+            return service;
         });
     }
 
     void clear(String repoKey) {
-        RepositoryService service = repositoryServiceMap.remove(repoKey);
+        RepoService service = repositoryServiceMap.remove(repoKey);
         if (service != null) {
             service.destroy();
         }

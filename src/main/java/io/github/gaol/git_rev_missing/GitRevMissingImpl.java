@@ -1,11 +1,11 @@
 package io.github.gaol.git_rev_missing;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.jboss.set.aphrodite.domain.Commit;
-import org.jboss.set.aphrodite.spi.RepositoryService;
 
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
@@ -16,13 +16,14 @@ import static io.github.gaol.git_rev_missing.RepoUtils.gitCommitLink;
 
 class GitRevMissingImpl implements GitRevMissing {
 
-    private static final SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
+    private static final Log logger = LogFactory.getLog(GitRevMissingImpl.class.getSimpleName());
 
-    private final RepositoryService repoService;
+    private final RepoService repoService;
     private final String repoServiceKey;
-    private final URL gitURL;
     private final URL gitRootURL;
     private boolean debug;
+    private final String username;
+    private final String password;
 
     GitRevMissingImpl(URL gitURL, String user, String pass) {
         super();
@@ -30,7 +31,8 @@ class GitRevMissingImpl implements GitRevMissing {
         gitRootURL = RepoUtils.canonicGitRootURL(gitURL);
         repoServiceKey = gitURL.getHost() + ":" + user;
         repoService = RepositoryServices.getInstance().getRepositoryService(gitRootURL, user, pass);
-        this.gitURL = gitURL;
+        this.username = user;
+        this.password = pass;
     }
 
     @Override
@@ -41,28 +43,28 @@ class GitRevMissingImpl implements GitRevMissing {
 
     @Override
     public MissingCommit missingCommits(String owner, String repo, String revA, String revB) {
-        return missingCommits(owner, repo, revA, revB, Instant.now().toEpochMilli() - 6 * MONTH_MILLI);
+        return missingCommits(owner, repo, revA, revB, Instant.now().toEpochMilli() - 12 * MONTH_MILLI);
     }
 
     @Override
     public MissingCommit missingCommits(String owner, String repo, String revA, String revB, long since) {
         try {
-            URL repoURL = new URL(gitURL.toString() + "/" + owner + "/" + repo);
+            URL repoURL = new URL(gitRootURL.toString() + "/" + owner + "/" + repo);
             List<Commit> revAList = repoService.getCommitsSince(repoURL, revA, since);
             List<Commit> revBList = repoService.getCommitsSince(repoURL, revB, since);
             if (revAList.isEmpty()) {
-                System.out.println("# no commits found in revision: " + revA + " since: " + dateString(since));
-            } else if (debug) {
-                printList("RevA", revAList);
+                logger.warn("# no commits found in revision: " + revA + " since: " + dateString(since));
+            } else {
+                logger.info(revAList.size() + " commits are found in revision: " + revA + " since: " + dateString(since));
             }
             if (revBList.isEmpty()) {
-                System.out.println("# no commits found in revision: " + revB + " since: " + dateString(since));
-            } else if (debug) {
-                printList("RevB", revBList);
+                logger.warn("# no commits found in revision: " + revB + " since: " + dateString(since));
+            } else {
+                logger.info(revBList.size() + " commits are found in revision: " + revB + " since: " + dateString(since));
             }
             List<CommitInfo> missingInB = new ArrayList<>();
             for (Commit commitInA: revAList) {
-                if (!commitInList(commitInA, revBList)) {
+                if (!shouldOmit(commitInA) && !commitInList(owner + "/" + repo, commitInA, revBList)) {
                     CommitInfo commitInfo = new CommitInfo();
                     commitInfo.setCommit(commitInA);
                     commitInfo.setCommitLink(gitCommitLink(repoURL.toString(), commitInA.getSha()));
@@ -70,7 +72,6 @@ class GitRevMissingImpl implements GitRevMissing {
                 }
             }
             MissingCommit missingCommit = new MissingCommit();
-
             missingCommit.setCommits(missingInB);
             return missingCommit;
         } catch (MalformedURLException e) {
@@ -79,12 +80,13 @@ class GitRevMissingImpl implements GitRevMissing {
         }
     }
 
-    private void printList(String head, List<Commit> commits) {
-        System.out.println("\n===========  [DEBUG INFO " + head + "]  ===========");
-        for (Commit commit: commits) {
-            System.out.println(commit);
+    private boolean shouldOmit(Commit commit) {
+        String message = commit.getMessage();
+        if (message.startsWith("Merge branch ") || message.startsWith("Next is ")
+                || message.startsWith("Prepare ") || message.startsWith("Merge pull request ")) {
+            return true;
         }
-        System.out.println("===========  [DEBUG INFO END " + head + "]  ===========\n");
+        return false;
     }
 
     private static String dateString(long since) {
@@ -93,13 +95,31 @@ class GitRevMissingImpl implements GitRevMissing {
         return Instant.ofEpochMilli(since).toString();
     }
 
-    private boolean commitInList(Commit commit, List<Commit> list) {
+    private boolean commitInList(String repoID, Commit commit, List<Commit> list) {
         for (Commit commitInList : list) {
             if (commit.getSha().equals(commitInList.getSha())) {
                 return true;
             }
         }
+        List<Commit> sameMessageCommits = sameMessageInList(commit, list);
+        if (sameMessageCommits.size() > 0) {
+            for (Commit c: sameMessageCommits) {
+                if (repoService.commitSame(repoID, commit.getSha(), c.getSha())) {
+                    return true;
+                }
+            }
+        }
         return false;
+    }
+
+    private List<Commit> sameMessageInList(Commit commit, List<Commit> list) {
+        List<Commit> commits = new ArrayList<>();
+        for (Commit c: list) {
+            if (c.getMessage().equals(commit.getMessage())) {
+                commits.add(c);
+            }
+        }
+        return commits;
     }
 
     @Override

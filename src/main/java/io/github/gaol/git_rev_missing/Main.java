@@ -31,7 +31,7 @@ public class Main implements Callable<Integer> {
     @CommandLine.Option(names = {"-p", "--pass"}, description = "password used to interact with git service", interactive = true)
     private String password;
 
-    @CommandLine.Option(names = {"-m", "--month"}, description = "time in month to check the commits, defaults to 6 months", defaultValue = "6")
+    @CommandLine.Option(names = {"-m", "--month"}, description = "time in month to check the commits, defaults to 12 months", defaultValue = "12")
     private int month;
 
     @CommandLine.Option(names = {"-d", "--debug"}, description = "debug for verbose info", defaultValue = "false")
@@ -107,7 +107,7 @@ public class Main implements Callable<Integer> {
         if (missCommit.isClean()) {
             System.out.println("Great, no missing commits found");
         } else {
-            System.err.println("Missing Commits Found:");
+            System.err.println("\n  " + missCommit.getCommits().size() + " commits were missing in " + revB + "\n");
             System.err.println(missCommit.toString());
         }
         System.out.println();
