@@ -26,6 +26,21 @@ final class RepoUtils {
         return repoKey(canonicRepoURL(config.getUrl()).getHost(), config.getUsername());
     }
 
+    // return the git root url, like: https://github.com
+    static URL canonicGitRootURL(final URL gitURL) {
+        if (gitURL.getPath() == null || gitURL.getPath().equals("")) {
+            return gitURL;
+        }
+        try {
+            String repoURL = gitURL.toString();
+            String rootURL = repoURL.substring(0, repoURL.indexOf(gitURL.getPath()));
+            return new URL(rootURL);
+        } catch (MalformedURLException e) {
+            return null;
+        }
+    }
+
+    // return the git repository url, like: https://github.com/ihomeland/prtest
     static URL canonicRepoURL(final String repoURL) {
         try {
             URL url = new URL(repoURL);
@@ -39,10 +54,13 @@ final class RepoUtils {
     static String gitCommitLink(String repoURL, String sha) {
         try {
             URL repo = canonicRepoURL(repoURL);
-            if (repo.toString().contains("gitlab")) {
-                return repo + "/~/commit/" + sha;
+            if (repo != null) {
+                if (repo.toString().contains("gitlab")) {
+                    return repo + "/~/commit/" + sha;
+                }
+                return repo.toString() + "/commit/" + sha;
             }
-            return repo.toString() + "/commit/" + sha;
+            return "<Not Known>";
         } catch (Exception e) {
             return "<Not Known>";
         }

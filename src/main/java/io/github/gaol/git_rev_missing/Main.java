@@ -13,6 +13,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URL;
+import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
@@ -60,12 +61,11 @@ public class Main implements Callable<Integer> {
             revA = revB;
             revB = tmp;
         }
-        URL gitRoot = RepoUtils.canonicRepoURL(gitRepoURL);
         String[] repoID = RepositoryUtils.createRepositoryIdFromUrl(gitURL).split("/");
         owner = repoID[0];
         repo = repoID[1];
         if (debug) {
-            System.out.println("gitRoot: " + gitRoot + ", owner: " + owner + ", repo: " + repo + ", revA: " + revA + ", revB: " + revB);
+            System.out.println("gitRoot: " + RepoUtils.canonicGitRootURL(gitURL) + ", owner: " + owner + ", repo: " + repo + ", revA: " + revA + ", revB: " + revB);
         }
 
         if ((username == null || password == null) && configFile == null) {
@@ -91,7 +91,7 @@ public class Main implements Callable<Integer> {
                                             RepositoryType.valueOf(json.getString("type", null))))
                             .collect(Collectors.toList());
                     repoConfigs.forEach(rc -> RepositoryServices.getInstance().add(rc));
-                    RepositoryConfig config = RepoUtils.filterConfig(repoConfigs, gitRoot);
+                    RepositoryConfig config = RepoUtils.filterConfig(repoConfigs, gitURL);
                     username = config.getUsername();
                     password = config.getPassword();
                 } catch (IOException e) {
@@ -102,8 +102,8 @@ public class Main implements Callable<Integer> {
                 return 1;
             }
         }
-        GitRevMissing gitRevMissing = GitRevMissing.create(gitRoot, username, password).setDebug(debug);
-        MissingCommit missCommit = gitRevMissing.missingCommits(owner, repo, revA, revB, month * GitRevMissing.MONTH_MILLI);
+        GitRevMissing gitRevMissing = GitRevMissing.create(gitURL, username, password).setDebug(debug);
+        MissingCommit missCommit = gitRevMissing.missingCommits(owner, repo, revA, revB, Instant.now().toEpochMilli() - month * GitRevMissing.MONTH_MILLI);
         if (missCommit.isClean()) {
             System.out.println("Great, no missing commits found");
         } else {

@@ -16,18 +16,20 @@ import static io.github.gaol.git_rev_missing.RepoUtils.gitCommitLink;
 
 class GitRevMissingImpl implements GitRevMissing {
 
-    private static final SimpleDateFormat formatter = new SimpleDateFormat("yyyy-mm-dd");
+    private static final SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
 
     private final RepositoryService repoService;
     private final String repoServiceKey;
     private final URL gitURL;
+    private final URL gitRootURL;
     private boolean debug;
 
     GitRevMissingImpl(URL gitURL, String user, String pass) {
         super();
         Objects.requireNonNull(gitURL, "URI of the git service must be provided");
+        gitRootURL = RepoUtils.canonicGitRootURL(gitURL);
         repoServiceKey = gitURL.getHost() + ":" + user;
-        repoService = RepositoryServices.getInstance().getRepositoryService(gitURL, user, pass);
+        repoService = RepositoryServices.getInstance().getRepositoryService(gitRootURL, user, pass);
         this.gitURL = gitURL;
     }
 
@@ -49,12 +51,12 @@ class GitRevMissingImpl implements GitRevMissing {
             List<Commit> revAList = repoService.getCommitsSince(repoURL, revA, since);
             List<Commit> revBList = repoService.getCommitsSince(repoURL, revB, since);
             if (revAList.isEmpty()) {
-                System.out.println("# no commits found in: " + revA + " since: " + dateString(since));
+                System.out.println("# no commits found in revision: " + revA + " since: " + dateString(since));
             } else if (debug) {
                 printList("RevA", revAList);
             }
             if (revBList.isEmpty()) {
-                System.out.println("# no commits found in: " + revB + " since: " + dateString(since));
+                System.out.println("# no commits found in revision: " + revB + " since: " + dateString(since));
             } else if (debug) {
                 printList("RevB", revBList);
             }
@@ -88,7 +90,7 @@ class GitRevMissingImpl implements GitRevMissing {
     private static String dateString(long since) {
         Date date = new Date();
         date.setTime(since);
-        return formatter.format(date);
+        return Instant.ofEpochMilli(since).toString();
     }
 
     private boolean commitInList(Commit commit, List<Commit> list) {

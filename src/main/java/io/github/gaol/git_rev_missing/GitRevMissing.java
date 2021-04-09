@@ -5,7 +5,7 @@ import java.net.URL;
 public interface GitRevMissing {
 
     // milliseconds in a month
-    long MONTH_MILLI = 2629800000L;
+    long MONTH_MILLI = 2592000000L;
 
     static GitRevMissing create(URL gitURL, String user, String pass) {
         return new GitRevMissingImpl(gitURL, user, pass);
