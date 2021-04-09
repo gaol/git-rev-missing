@@ -1,12 +1,21 @@
 package io.github.gaol.git_rev_missing;
 
+import org.jboss.set.aphrodite.config.RepositoryConfig;
+import org.jboss.set.aphrodite.repository.services.common.RepositoryType;
 import org.jboss.set.aphrodite.repository.services.common.RepositoryUtils;
 import picocli.CommandLine;
 
+import javax.json.Json;
+import javax.json.JsonArray;
+import javax.json.JsonObject;
+import javax.json.JsonReader;
 import java.io.File;
-import java.net.URI;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.net.URL;
+import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.stream.Collectors;
 
 @CommandLine.Command(name = "git-rev-missing", mixinStandardHelpOptions = true, version = "0.0.1",
         description = "Tool to list missing commits in a branch|tag compared to another one")
@@ -59,6 +68,40 @@ public class Main implements Callable<Integer> {
             System.out.println("gitRoot: " + gitRoot + ", owner: " + owner + ", repo: " + repo + ", revA: " + revA + ", revB: " + revB);
         }
 
+        if ((username == null || password == null) && configFile == null) {
+            System.err.println("No username/password nor config file specified.");
+            return 1;
+        }
+        if (username == null || password == null) {
+            if (configFile.exists()) {
+                try (JsonReader jr = Json.createReader(new FileInputStream(configFile))) {
+                    JsonObject jsonObject = jr.readObject();
+                    JsonArray configs = jsonObject.getJsonArray("repositoryConfigs");
+                    if (configs == null) {
+                        System.err.println("No repositoryConfigs found in the config file");
+                        return 1;
+                    }
+                    List<RepositoryConfig> repoConfigs = configs.stream()
+                            .map(JsonObject.class::cast)
+                            .map(json ->
+                                    new RepositoryConfig(
+                                            json.getString("url", null),
+                                            json.getString("username", null),
+                                            json.getString("password", null),
+                                            RepositoryType.valueOf(json.getString("type", null))))
+                            .collect(Collectors.toList());
+                    repoConfigs.forEach(rc -> RepositoryServices.getInstance().add(rc));
+                    RepositoryConfig config = RepoUtils.filterConfig(repoConfigs, gitRoot);
+                    username = config.getUsername();
+                    password = config.getPassword();
+                } catch (IOException e) {
+                    throw new RuntimeException("Failed to read the config file", e);
+                }
+            } else {
+                System.err.println("No a valid config file: " + configFile);
+                return 1;
+            }
+        }
         GitRevMissing gitRevMissing = GitRevMissing.create(gitRoot, username, password).setDebug(debug);
         MissingCommit missCommit = gitRevMissing.missingCommits(owner, repo, revA, revB, month * GitRevMissing.MONTH_MILLI);
         if (missCommit.isClean()) {

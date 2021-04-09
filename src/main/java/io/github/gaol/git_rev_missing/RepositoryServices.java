@@ -21,34 +21,49 @@ class RepositoryServices {
         return instance;
     }
 
-    private Map<String, RepositoryService> repositoryServiceMap = new ConcurrentHashMap<>();
+    private final Map<String, RepositoryService> repositoryServiceMap = new ConcurrentHashMap<>();
+    private final Map<String, RepositoryConfig> configMap = new ConcurrentHashMap<>();
 
     RepositoryService getRepositoryService(URL gitURL, String username, String password) {
         final String key = gitURL.getHost() + ":" + username;
-        return repositoryServiceMap.computeIfAbsent(key, rs -> {
+        final RepositoryConfig config = configMap.computeIfAbsent(key, c -> {
             RepositoryType repoType;
-            RepositoryService repoService;
             if (gitURL.getHost().contains("github.com")) {
                 repoType = RepositoryType.GITHUB;
-                repoService = new GitHubRepositoryService();
             } else if (gitURL.getHost().contains("gitlab")) {
                 repoType = RepositoryType.GITLAB;
+            } else {
+                //TODO support gitweb?
+                throw new RuntimeException("Not supported for Git service: " + gitURL.toString());
+            }
+            return new RepositoryConfig(gitURL.toString(), username, password, repoType);
+        });
+        return repositoryServiceMap.computeIfAbsent(key, rs -> {
+            RepositoryService repoService;
+            if (RepositoryType.GITHUB.equals(config.getType())) {
+                repoService = new GitHubRepositoryService();
+            } else if (RepositoryType.GITLAB.equals(config.getType())) {
                 repoService = new GitLabRepositoryService();
             } else {
                 //TODO support gitweb?
                 throw new RuntimeException("Not supported for Git service: " + gitURL.toString());
             }
-            RepositoryConfig repoConfig = new RepositoryConfig(gitURL.toString(), username, password, repoType);
-            repoService.init(repoConfig);
+            repoService.init(config);
             return repoService;
         });
     }
 
-    void clear(String repoServiceKey) {
-        RepositoryService service = repositoryServiceMap.remove(repoServiceKey);
+    void clear(String repoKey) {
+        RepositoryService service = repositoryServiceMap.remove(repoKey);
         if (service != null) {
             service.destroy();
         }
+        configMap.remove(repoKey);
     }
+
+    public void add(RepositoryConfig rc) {
+        configMap.putIfAbsent(RepoUtils.repoKey(rc), rc);
+    }
+
 
 }
