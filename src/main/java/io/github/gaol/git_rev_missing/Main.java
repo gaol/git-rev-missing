@@ -12,10 +12,10 @@ public class Main implements Callable<Integer> {
     @CommandLine.Parameters(index = "0", description = "The url of comparing the revisions")
     private String compareURL;
 
-    @CommandLine.Option(names = {"-u", "--user"}, description = "username used to interact with git service", required = true)
+    @CommandLine.Option(names = {"-u", "--user"}, description = "username used to interact with git service")
     private String username;
 
-    @CommandLine.Option(names = {"-p", "--pass"}, description = "password used to interact with git service", required = true)
+    @CommandLine.Option(names = {"-p", "--pass"}, description = "password used to interact with git service")
     private String password;
 
     @CommandLine.Option(names = {"-m", "--month"}, description = "time in month to check the commits, defaults to 6 months", defaultValue = "6")
@@ -63,6 +63,7 @@ public class Main implements Callable<Integer> {
             System.err.println(missCommit.toString());
         }
         System.out.println();
+        gitRevMissing.release();
         return 0;
     }
 

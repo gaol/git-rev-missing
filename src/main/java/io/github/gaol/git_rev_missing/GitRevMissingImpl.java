@@ -1,10 +1,6 @@
 package io.github.gaol.git_rev_missing;
 
-import org.jboss.set.aphrodite.config.RepositoryConfig;
 import org.jboss.set.aphrodite.domain.Commit;
-import org.jboss.set.aphrodite.repository.services.common.RepositoryType;
-import org.jboss.set.aphrodite.repository.services.github.GitHubRepositoryService;
-import org.jboss.set.aphrodite.repository.services.gitlab.GitLabRepositoryService;
 import org.jboss.set.aphrodite.spi.RepositoryService;
 
 import java.net.MalformedURLException;
@@ -17,39 +13,22 @@ import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 
+import static io.github.gaol.git_rev_missing.RepoUtils.gitCommitLink;
+
 class GitRevMissingImpl implements GitRevMissing {
 
-    private static final SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
+    private static final SimpleDateFormat formatter = new SimpleDateFormat("yyyy-mm-dd");
 
     private final RepositoryService repoService;
+    private final String repoServiceKey;
     private final URI gitURI;
-
-    private enum SupportedType {
-        GITHUB,
-        GITLAB
-    }
-
-    private final SupportedType type;
-
     private boolean debug;
 
     GitRevMissingImpl(URI gitURI, String user, String pass) {
         super();
         Objects.requireNonNull(gitURI, "URI of the git service must be provided");
-        RepositoryType repoType;
-        if (gitURI.getHost().contains("github.com")) {
-            repoType = RepositoryType.GITHUB;
-            repoService = new GitHubRepositoryService();
-            type = SupportedType.GITHUB;
-        } else if (gitURI.getHost().contains("gitlab")) {
-            repoType = RepositoryType.GITLAB;
-            repoService = new GitLabRepositoryService();
-            type = SupportedType.GITLAB;
-        } else {
-            throw new RuntimeException("Not supported for Git service: " + gitURI.toString());
-        }
-        RepositoryConfig repoConfig = new RepositoryConfig(gitURI.toString(), user, pass, repoType);
-        repoService.init(repoConfig);
+        repoServiceKey = gitURI.getHost() + ":" + user;
+        repoService = RepositoryServices.getInstance().getRepositoryService(gitURI, user, pass);
         this.gitURI = gitURI;
     }
 
@@ -107,15 +86,6 @@ class GitRevMissingImpl implements GitRevMissing {
         System.out.println("===========  [DEBUG INFO END " + head + "]  ===========\n");
     }
 
-    private String gitCommitLink(String repoURL, String sha) {
-        if (type == SupportedType.GITHUB) {
-            return repoURL + "/commit/" + sha;
-        } else if (type == SupportedType.GITLAB) {
-            return repoURL + "~/commit/" + sha;
-        }
-        return repoURL + "/commit/" + sha;
-    }
-
     private static String dateString(long since) {
         Date date = new Date();
         date.setTime(since);
@@ -129,6 +99,11 @@ class GitRevMissingImpl implements GitRevMissing {
             }
         }
         return false;
+    }
+
+    @Override
+    public void release() {
+        RepositoryServices.getInstance().clear(repoServiceKey);
     }
 
 }

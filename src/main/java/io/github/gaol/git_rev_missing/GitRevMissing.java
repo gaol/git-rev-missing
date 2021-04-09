@@ -17,4 +17,5 @@ public interface GitRevMissing {
 
     MissingCommit missingCommits(String owner, String repo, String revA, String revB, long since);
 
+    void release();
 }

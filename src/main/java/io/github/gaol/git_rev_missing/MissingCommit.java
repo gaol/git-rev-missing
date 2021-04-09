@@ -1,7 +1,5 @@
 package io.github.gaol.git_rev_missing;
 
-import org.jboss.set.aphrodite.domain.Commit;
-
 import java.util.List;
 
 public class MissingCommit {
