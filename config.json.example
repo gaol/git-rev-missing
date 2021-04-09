@@ -1,0 +1,16 @@
+{
+  "repositoryConfigs": [
+    {
+      "url": "https://github.com/",
+      "username": "my-user-name",
+      "password": "my-access-token",
+      "type": "GITHUB"
+    },
+    {
+      "url": "https://gitlab.cee.redhat.com/",
+      "username": "my-user-name",
+      "password": "my-access-token",
+      "type": "GITLAB"
+    }
+  ]
+}
