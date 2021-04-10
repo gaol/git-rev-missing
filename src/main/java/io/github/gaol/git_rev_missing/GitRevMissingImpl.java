@@ -24,12 +24,12 @@ class GitRevMissingImpl implements GitRevMissing {
     private final String username;
     private final String password;
 
-    GitRevMissingImpl(URL gitURL, String user, String pass) {
+    GitRevMissingImpl(URL gitRootURL, String user, String pass) {
         super();
-        Objects.requireNonNull(gitURL, "URI of the git service must be provided");
-        gitRootURL = RepoUtils.canonicGitRootURL(gitURL);
-        repoServiceKey = gitURL.getHost() + ":" + user;
-        repoService = RepositoryServices.getInstance().getRepositoryService(gitRootURL, user, pass);
+        Objects.requireNonNull(gitRootURL, "URL of the git service root must be provided");
+        this.gitRootURL = gitRootURL;
+        repoServiceKey = this.gitRootURL.getHost() + ":" + user;
+        repoService = RepositoryServices.getInstance().getRepositoryService(this.gitRootURL, user, pass);
         this.username = user;
         this.password = pass;
     }

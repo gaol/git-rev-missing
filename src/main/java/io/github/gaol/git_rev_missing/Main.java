@@ -54,18 +54,19 @@ public class Main implements Callable<Integer> {
         revB = compareURL.substring(dotsIdx + 3);
         int lastSlash = compareURL.lastIndexOf("/");
         revA = compareURL.substring(lastSlash + 1, dotsIdx);
-        final String gitRepoURL = compareURL.substring(0, lastSlash);
-        URL gitURL = new URL(gitRepoURL);
-        if (gitURL.getHost().contains("gitlab")) {
+        final String gitRepoLink = compareURL.substring(0, lastSlash);
+        URL gitRepoURL = new URL(gitRepoLink);
+        if (gitRepoURL.getHost().contains("gitlab")) {
             // switch revA and revB
             String tmp = revA;
             revA = revB;
             revB = tmp;
         }
-        String[] repoID = RepositoryUtils.createRepositoryIdFromUrl(gitURL).split("/");
+        String[] repoID = RepositoryUtils.createRepositoryIdFromUrl(gitRepoURL).split("/");
         owner = repoID[0];
         repo = repoID[1];
-        logger.debug("gitRoot: " + RepoUtils.canonicGitRootURL(gitURL) + ", owner: " + owner + ", repo: " + repo + ", revA: " + revA + ", revB: " + revB);
+        URL gitRootURL = RepoUtils.canonicGitRootURL(gitRepoURL);
+        logger.debug("gitRoot: " + gitRootURL + ", owner: " + owner + ", repo: " + repo + ", revA: " + revA + ", revB: " + revB);
         if ((username == null || password == null) && configFile == null) {
             logger.error("No username/password nor config file specified.");
             return 1;
@@ -89,7 +90,7 @@ public class Main implements Callable<Integer> {
                                             RepositoryType.valueOf(json.getString("type", null))))
                             .collect(Collectors.toList());
                     repoConfigs.forEach(rc -> RepositoryServices.getInstance().add(rc));
-                    RepositoryConfig config = RepoUtils.filterConfig(repoConfigs, gitURL);
+                    RepositoryConfig config = RepoUtils.filterConfig(repoConfigs, gitRepoURL);
                     username = config.getUsername();
                     password = config.getPassword();
                 } catch (IOException e) {
@@ -100,7 +101,7 @@ public class Main implements Callable<Integer> {
                 return 1;
             }
         }
-        GitRevMissing gitRevMissing = GitRevMissing.create(gitURL, username, password);
+        GitRevMissing gitRevMissing = GitRevMissing.create(gitRootURL, username, password);
         MissingCommit missCommit = gitRevMissing.missingCommits(owner, repo, revA, revB, Instant.now().toEpochMilli() - month * GitRevMissing.MONTH_MILLI);
         if (missCommit.isClean()) {
             logger.info("Great, no missing commits found");

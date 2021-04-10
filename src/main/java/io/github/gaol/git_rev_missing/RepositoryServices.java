@@ -24,19 +24,19 @@ class RepositoryServices {
     private final Map<String, RepoService> repositoryServiceMap = new ConcurrentHashMap<>();
     private final Map<String, RepositoryConfig> configMap = new ConcurrentHashMap<>();
 
-    RepoService getRepositoryService(URL gitURL, String username, String password) {
-        final String key = gitURL.getHost() + ":" + username;
+    RepoService getRepositoryService(URL gitRootURL, String username, String password) {
+        final String key = gitRootURL.getHost() + ":" + username;
         final RepositoryConfig config = configMap.computeIfAbsent(key, c -> {
             RepositoryType repoType;
-            if (gitURL.getHost().contains("github.com")) {
+            if (gitRootURL.getHost().contains("github.com")) {
                 repoType = RepositoryType.GITHUB;
-            } else if (gitURL.getHost().contains("gitlab")) {
+            } else if (gitRootURL.getHost().contains("gitlab")) {
                 repoType = RepositoryType.GITLAB;
             } else {
                 //TODO support gitweb?
-                throw new RuntimeException("Not supported for Git service: " + gitURL.toString());
+                throw new RuntimeException("Not supported for Git service: " + gitRootURL.toString());
             }
-            return new RepositoryConfig(gitURL.toString(), username, password, repoType);
+            return new RepositoryConfig(gitRootURL.toString(), username, password, repoType);
         });
         return repositoryServiceMap.computeIfAbsent(key, rs -> {
             RepositoryService repoService;
@@ -46,7 +46,7 @@ class RepositoryServices {
                 repoService = new GitLabRepositoryService();
             } else {
                 //TODO support gitweb?
-                throw new RuntimeException("Not supported for Git service: " + gitURL.toString());
+                throw new RuntimeException("Not supported for Git service: " + gitRootURL.toString());
             }
             repoService.init(config);
             RepoService service = new RepoService();
