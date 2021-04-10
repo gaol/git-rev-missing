@@ -111,10 +111,10 @@ public class Main implements Callable<Integer> {
         GitRevMissing gitRevMissing = GitRevMissing.create(gitRootURL, username, password);
         MissingCommit missCommit = gitRevMissing.missingCommits(owner, repo, revA, revB, Instant.now().toEpochMilli() - month * GitRevMissing.MONTH_MILLI);
         if (missCommit.isClean()) {
-            logger.info("Great, no missing commits found");
+            logger.info("Great, no missing commits found\n");
         } else {
-            logger.warn("\n  " + missCommit.getCommits().size() + " commits were missing in " + revB + "\n");
-            logger.warn(missCommit.toString());
+            logger.warn(missCommit.getCommits().size() + " commits were missing in " + revB + "\n");
+            logger.warn(missCommit.toString() + "\n");
         }
         gitRevMissing.release();
         return 0;

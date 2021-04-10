@@ -122,3 +122,6 @@ Please refer to [config.json.example](./config.json.example) for the configurati
 ```
 
 It has the same format as what Aphrodite has.
+
+The script takes `config.json` as the default file in the current directory, if it does not exist, it tries to check
+`config.json` in current user's home directory.
