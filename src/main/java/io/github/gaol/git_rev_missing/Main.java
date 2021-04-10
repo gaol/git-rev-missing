@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 
-@CommandLine.Command(name = "git-rev-missing", mixinStandardHelpOptions = true, version = "0.0.1",
+@CommandLine.Command(name = "git_rev_missing", mixinStandardHelpOptions = true, version = "0.0.1",
         description = "Tool to list missing commits in a branch|tag compared to another one")
 public class Main implements Callable<Integer> {
 
