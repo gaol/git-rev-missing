@@ -17,13 +17,13 @@ public interface GitRevMissing {
     /**
      * Creates the <code>GitRevMissing</code> instance
      *
-     * @param gitURL the git service URL, it
+     * @param gitRootURL the git service URL, it must be the root url of the git service.
      * @param user the username to communicate with the git service
      * @param pass the password of the username
      * @return a new <code>GitRevMissing</code> instance
      */
-    static GitRevMissing create(URL gitURL, String user, String pass) {
-        return new GitRevMissingImpl(gitURL, user, pass);
+    static GitRevMissing create(URL gitRootURL, String user, String pass) {
+        return new GitRevMissingImpl(gitRootURL, user, pass);
     }
 
     /**

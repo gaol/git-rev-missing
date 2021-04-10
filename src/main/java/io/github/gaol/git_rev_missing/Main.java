@@ -15,6 +15,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -72,6 +73,10 @@ public class Main implements Callable<Integer> {
             return 1;
         }
         if (username == null || password == null) {
+            if (!configFile.exists() && "config.json".equals(configFile.getName())) {
+                // try to check ~/config.json in home dir
+                configFile = Paths.get(System.getProperty("user.home"), "config.json").toFile();
+            }
             if (configFile.exists()) {
                 try (JsonReader jr = Json.createReader(new FileInputStream(configFile))) {
                     JsonObject jsonObject = jr.readObject();
