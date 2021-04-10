@@ -1,5 +1,7 @@
 package io.github.gaol.git_rev_missing;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.jboss.set.aphrodite.config.RepositoryConfig;
 import org.jboss.set.aphrodite.repository.services.common.RepositoryType;
 import org.jboss.set.aphrodite.repository.services.common.RepositoryUtils;
@@ -22,6 +24,8 @@ import java.util.stream.Collectors;
         description = "Tool to list missing commits in a branch|tag compared to another one")
 public class Main implements Callable<Integer> {
 
+    private static final Log logger = LogFactory.getLog("git_rev_missing.main");
+
     @CommandLine.Parameters(index = "0", description = "The url of comparing the revisions")
     private String compareURL;
 
@@ -34,10 +38,7 @@ public class Main implements Callable<Integer> {
     @CommandLine.Option(names = {"-m", "--month"}, description = "time in month to check the commits, defaults to 12 months", defaultValue = "12")
     private int month;
 
-    @CommandLine.Option(names = {"-d", "--debug"}, description = "debug for verbose info", defaultValue = "false")
-    private boolean debug;
-
-    @CommandLine.Option(paramLabel = "FILE", names = {"-c", "--config"}, description = "Config file, content is in JSON format.")
+    @CommandLine.Option(paramLabel = "FILE", names = {"-c", "--config"}, description = "Config file, content is in JSON format.", defaultValue = "config.json")
     private File configFile;
 
     @Override
@@ -64,12 +65,9 @@ public class Main implements Callable<Integer> {
         String[] repoID = RepositoryUtils.createRepositoryIdFromUrl(gitURL).split("/");
         owner = repoID[0];
         repo = repoID[1];
-        if (debug) {
-            System.out.println("gitRoot: " + RepoUtils.canonicGitRootURL(gitURL) + ", owner: " + owner + ", repo: " + repo + ", revA: " + revA + ", revB: " + revB);
-        }
-
+        logger.debug("gitRoot: " + RepoUtils.canonicGitRootURL(gitURL) + ", owner: " + owner + ", repo: " + repo + ", revA: " + revA + ", revB: " + revB);
         if ((username == null || password == null) && configFile == null) {
-            System.err.println("No username/password nor config file specified.");
+            logger.error("No username/password nor config file specified.");
             return 1;
         }
         if (username == null || password == null) {
@@ -78,7 +76,7 @@ public class Main implements Callable<Integer> {
                     JsonObject jsonObject = jr.readObject();
                     JsonArray configs = jsonObject.getJsonArray("repositoryConfigs");
                     if (configs == null) {
-                        System.err.println("No repositoryConfigs found in the config file");
+                        logger.error("No repositoryConfigs found in the config file");
                         return 1;
                     }
                     List<RepositoryConfig> repoConfigs = configs.stream()
@@ -98,24 +96,23 @@ public class Main implements Callable<Integer> {
                     throw new RuntimeException("Failed to read the config file", e);
                 }
             } else {
-                System.err.println("No a valid config file: " + configFile);
+                logger.error("No a valid config file: " + configFile);
                 return 1;
             }
         }
-        GitRevMissing gitRevMissing = GitRevMissing.create(gitURL, username, password).setDebug(debug);
+        GitRevMissing gitRevMissing = GitRevMissing.create(gitURL, username, password);
         MissingCommit missCommit = gitRevMissing.missingCommits(owner, repo, revA, revB, Instant.now().toEpochMilli() - month * GitRevMissing.MONTH_MILLI);
         if (missCommit.isClean()) {
-            System.out.println("Great, no missing commits found");
+            logger.info("Great, no missing commits found");
         } else {
-            System.err.println("\n  " + missCommit.getCommits().size() + " commits were missing in " + revB + "\n");
-            System.err.println(missCommit.toString());
+            logger.warn("\n  " + missCommit.getCommits().size() + " commits were missing in " + revB + "\n");
+            logger.warn(missCommit.toString());
         }
-        System.out.println();
         gitRevMissing.release();
         return 0;
     }
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
         int exitCode = new CommandLine(new Main()).execute(args);
         System.exit(exitCode);
     }

@@ -11,8 +11,6 @@ public interface GitRevMissing {
         return new GitRevMissingImpl(gitURL, user, pass);
     }
 
-    GitRevMissing setDebug(boolean debug);
-
     MissingCommit missingCommits(String owner, String repo, String revA, String revB);
 
     MissingCommit missingCommits(String owner, String repo, String revA, String revB, long since);

@@ -16,12 +16,11 @@ import static io.github.gaol.git_rev_missing.RepoUtils.gitCommitLink;
 
 class GitRevMissingImpl implements GitRevMissing {
 
-    private static final Log logger = LogFactory.getLog(GitRevMissingImpl.class.getSimpleName());
+    private static final Log logger = LogFactory.getLog("git_rev_missing.impl");
 
     private final RepoService repoService;
     private final String repoServiceKey;
     private final URL gitRootURL;
-    private boolean debug;
     private final String username;
     private final String password;
 
@@ -33,12 +32,6 @@ class GitRevMissingImpl implements GitRevMissing {
         repoService = RepositoryServices.getInstance().getRepositoryService(gitRootURL, user, pass);
         this.username = user;
         this.password = pass;
-    }
-
-    @Override
-    public GitRevMissingImpl setDebug(boolean debug) {
-        this.debug = debug;
-        return this;
     }
 
     @Override

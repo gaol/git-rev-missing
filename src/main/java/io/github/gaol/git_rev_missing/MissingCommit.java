@@ -1,5 +1,7 @@
 package io.github.gaol.git_rev_missing;
 
+import org.gitlab4j.api.utils.JacksonJson;
+
 import java.util.List;
 
 public class MissingCommit {
@@ -21,13 +23,7 @@ public class MissingCommit {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("\tMissingCommits:[\n");
-        for (CommitInfo commit: commits) {
-            sb.append("\t").append(commit.toString()).append("\n");
-        }
-        sb.append("]");
-        return sb.toString();
+        return JacksonJson.toJsonString(this);
     }
 
 }
