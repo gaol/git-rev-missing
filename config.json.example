@@ -7,7 +7,7 @@
       "type": "GITHUB"
     },
     {
-      "url": "https://gitlab.cee.redhat.com/",
+      "url": "https://gitlab.xxx.yyy.com/",
       "username": "my-user-name",
       "password": "my-access-token",
       "type": "GITLAB"

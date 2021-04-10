@@ -21,13 +21,15 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 
+import static picocli.CommandLine.Help.Visibility.ALWAYS;
+
 @CommandLine.Command(name = "git_rev_missing", mixinStandardHelpOptions = true, version = "0.0.1",
         description = "Tool to list missing commits in a branch|tag compared to another one")
 public class Main implements Callable<Integer> {
 
     private static final Log logger = LogFactory.getLog("git_rev_missing.main");
 
-    @CommandLine.Parameters(index = "0", description = "The url of comparing the revisions")
+    @CommandLine.Parameters(index = "0", description = "The url of comparing the revisions, like: \nhttps://github.com/owner/repo/compare/1.0...1.1")
     private String compareURL;
 
     @CommandLine.Option(names = {"-u", "--user"}, description = "username used to interact with git service")
@@ -36,10 +38,10 @@ public class Main implements Callable<Integer> {
     @CommandLine.Option(names = {"-p", "--pass"}, description = "password used to interact with git service", interactive = true)
     private String password;
 
-    @CommandLine.Option(names = {"-m", "--month"}, description = "time in month to check the commits, defaults to 12 months", defaultValue = "12")
+    @CommandLine.Option(names = {"-m", "--month"}, description = "how long to find commits, defaults to 1 year", defaultValue = "12", showDefaultValue = ALWAYS)
     private int month;
 
-    @CommandLine.Option(paramLabel = "FILE", names = {"-c", "--config"}, description = "Config file, content is in JSON format.", defaultValue = "config.json")
+    @CommandLine.Option(paramLabel = "FILE", names = {"-c", "--config"}, description = "Config file, content is in JSON format.", defaultValue = "config.json", showDefaultValue = ALWAYS)
     private File configFile;
 
     @Override
