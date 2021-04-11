@@ -160,7 +160,6 @@ class RepoService {
                 }
                 // check if only small differences, like conflicts resolved, or different locations about the diff
                 double similar = similarness(p1, p2);
-                logger.debug("Similar between commit: " + sha1 + " and commit: " + sha2 + " is: " + similar);
                 if (similar > ratioThreshold) {
                     return CompareResult.Result.SUSPICIOUS;
                 }
