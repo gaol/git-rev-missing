@@ -16,13 +16,15 @@ import static io.github.gaol.git_rev_missing.RepoUtils.gitCommitLink;
 
 class GitRevMissingImpl implements GitRevMissing {
 
-    private static final Log logger = LogFactory.getLog("git_rev_missing.impl");
+    private static final Log logger = LogFactory.getLog("g_r_m.impl");
 
     private final RepoService repoService;
     private final String repoServiceKey;
     private final URL gitRootURL;
     private final String username;
     private final String password;
+    private double ratioThreshold = 0.9d;
+    private double messageRatioThreshold = 0.7d;
 
     GitRevMissingImpl(URL gitRootURL, String user, String pass) {
         super();
@@ -32,6 +34,18 @@ class GitRevMissingImpl implements GitRevMissing {
         repoService = RepositoryServices.getInstance().getRepositoryService(this.gitRootURL, user, pass);
         this.username = user;
         this.password = pass;
+    }
+
+    @Override
+    public GitRevMissingImpl setRatioThreshold(double ratioThreshold) {
+        this.ratioThreshold = ratioThreshold;
+        return this;
+    }
+
+    @Override
+    public GitRevMissingImpl setMessageRatioThreshold(double messageRatioThreshold) {
+        this.messageRatioThreshold = messageRatioThreshold;
+        return this;
     }
 
     @Override
@@ -56,16 +70,27 @@ class GitRevMissingImpl implements GitRevMissing {
                 logger.info(revBList.size() + " commits are found in revision: " + revB + " since: " + dateString(since));
             }
             List<CommitInfo> missingInB = new ArrayList<>();
+            List<CommitInfo> suspiciousCommits = new ArrayList<>();
             for (Commit commitInA: revAList) {
-                if (!shouldOmit(commitInA) && !commitInList(owner + "/" + repo, commitInA, revBList)) {
-                    CommitInfo commitInfo = new CommitInfo();
-                    commitInfo.setCommit(commitInA);
-                    commitInfo.setCommitLink(gitCommitLink(repoURL.toString(), commitInA.getSha()));
-                    missingInB.add(commitInfo);
+                if (!shouldOmit(commitInA)) {
+                    CompareResult result = commitInList(owner + "/" + repo, commitInA, revBList);
+                    if (result.getResult() == CompareResult.Result.DIFFERENT) {
+                        CommitInfo commitInfo = new CommitInfo();
+                        commitInfo.setCommit(commitInA);
+                        commitInfo.setCommitLink(gitCommitLink(repoURL.toString(), commitInA.getSha()));
+                        missingInB.add(commitInfo);
+                    } else if (result.getResult() == CompareResult.Result.SUSPICIOUS) {
+                        CommitInfo commitInfo = new CommitInfo();
+                        commitInfo.setCommit(commitInA);
+                        commitInfo.setCommitLink(gitCommitLink(repoURL.toString(), commitInA.getSha()));
+                        commitInfo.setTargetLink(gitCommitLink(repoURL.toString(), result.getSha2()));
+                        suspiciousCommits.add(commitInfo);
+                    }
                 }
             }
             MissingCommit missingCommit = new MissingCommit();
             missingCommit.setCommits(missingInB);
+            missingCommit.setSuspiciousCommits(suspiciousCommits);
             return missingCommit;
         } catch (MalformedURLException e) {
             e.printStackTrace();
@@ -88,21 +113,61 @@ class GitRevMissingImpl implements GitRevMissing {
         return Instant.ofEpochMilli(since).toString();
     }
 
-    private boolean commitInList(String repoID, Commit commit, List<Commit> list) {
+    private CompareResult commitInList(String repoID, Commit commit, List<Commit> list) {
+        CompareResult cr = new CompareResult().setSha1(commit.getSha());
         for (Commit commitInList : list) {
             if (commit.getSha().equals(commitInList.getSha())) {
-                return true;
+                return cr.setResult(CompareResult.Result.SAME);
             }
         }
         List<Commit> sameMessageCommits = sameMessageInList(commit, list);
         if (sameMessageCommits.size() > 0) {
+            boolean suspicious = false;
             for (Commit c: sameMessageCommits) {
-                if (repoService.commitSame(repoID, commit.getSha(), c.getSha())) {
-                    return true;
+                CompareResult.Result result = repoService.commitSame(repoID, commit.getSha(), c.getSha(), ratioThreshold);
+                if (CompareResult.Result.SAME == result) {
+                    return cr.setResult(CompareResult.Result.SAME);
+                } else if (result == CompareResult.Result.SUSPICIOUS) {
+                    suspicious = true;
+                    cr.setSha2(c.getSha());
+                }
+            }
+            if (suspicious) {
+                return cr.setResult(CompareResult.Result.SUSPICIOUS);
+            }
+        }
+        // sometime, the commit message got amended, but the patch content is the same, we consider that as the same commit
+        List<Commit> simiarMessage = similarMessageInList(commit, list, messageRatioThreshold);
+        if (simiarMessage.size() > 0) {
+            boolean suspicious = false;
+            for (Commit c: simiarMessage) {
+                CompareResult.Result result = repoService.commitSame(repoID, commit.getSha(), c.getSha(), ratioThreshold);
+                if (CompareResult.Result.SAME == result) {
+                    return cr.setResult(CompareResult.Result.SAME);
+                } else if (result == CompareResult.Result.SUSPICIOUS) {
+                    suspicious = true;
+                    cr.setSha2(c.getSha());
+                }
+            }
+            if (suspicious) {
+                return cr.setResult(CompareResult.Result.SUSPICIOUS);
+            }
+        }
+        return cr.setResult(CompareResult.Result.DIFFERENT);
+    }
+
+    private List<Commit> similarMessageInList(Commit commit, List<Commit> list, double messageRatioThreshold) {
+        List<Commit> commits = new ArrayList<>();
+        for (Commit c: list) {
+            if (!c.getMessage().equals(commit.getMessage())) {
+                if (RepoService.commitMessageTrim(c.getMessage()).equals(RepoService.commitMessageTrim(commit.getMessage()))
+                || RepoService.similarness(c.getMessage(), commit.getMessage()) > messageRatioThreshold) {
+                    // after trim the issue key, it is the same
+                    commits.add(c);
                 }
             }
         }
-        return false;
+        return commits;
     }
 
     private List<Commit> sameMessageInList(Commit commit, List<Commit> list) {

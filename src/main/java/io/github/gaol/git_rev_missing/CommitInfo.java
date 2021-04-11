@@ -1,5 +1,6 @@
 package io.github.gaol.git_rev_missing;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import org.jboss.set.aphrodite.domain.Commit;
 
 import java.util.Objects;
@@ -7,6 +8,19 @@ import java.util.Objects;
 public class CommitInfo {
     private Commit commit;
     private String commitLink;
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private String targetLink;
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public String getTargetLink() {
+        return targetLink;
+    }
+
+    public CommitInfo setTargetLink(String targetLink) {
+        this.targetLink = targetLink;
+        return this;
+    }
 
     public Commit getCommit() {
         return commit;

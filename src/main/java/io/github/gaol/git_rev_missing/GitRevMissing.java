@@ -27,6 +27,22 @@ public interface GitRevMissing {
     }
 
     /**
+     * Sets the ratio threshold when comparing the patches, default to <code>0.9d</code>
+     *
+     * @param ratioThreshold the ratio threshold of the patch difference
+     * @return this reference for confluent use
+     */
+    GitRevMissing setRatioThreshold(double ratioThreshold);
+
+    /**
+     * Sets the ratio threshold when comparing the commit messages for suspicious commits, default to <code>0.7d</code>
+     *
+     * @param messageRatioThreshold the ratio threshold of the commit message difference
+     * @return this reference for confluent use
+     */
+    GitRevMissing setMessageRatioThreshold(double messageRatioThreshold);
+
+    /**
      * Tries to find commits in <code>revA</code>, but missing in <code>revB</code>.
      * <p>
      *     It tried to find commits from 12 months ago.

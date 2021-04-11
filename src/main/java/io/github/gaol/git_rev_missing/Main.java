@@ -23,11 +23,11 @@ import java.util.stream.Collectors;
 
 import static picocli.CommandLine.Help.Visibility.ALWAYS;
 
-@CommandLine.Command(name = "git_rev_missing", mixinStandardHelpOptions = true, version = "0.0.1",
+@CommandLine.Command(name = "git_rev_missing", mixinStandardHelpOptions = true, version = "0.0.2",
         description = "Tool to list missing commits in a branch|tag compared to another one")
 public class Main implements Callable<Integer> {
 
-    private static final Log logger = LogFactory.getLog("git_rev_missing.main");
+    private static final Log logger = LogFactory.getLog("g_r_m.main");
 
     @CommandLine.Parameters(index = "0", description = "The url of comparing the revisions, like: \nhttps://github.com/owner/repo/compare/1.0...1.1")
     private String compareURL;
@@ -43,6 +43,12 @@ public class Main implements Callable<Integer> {
 
     @CommandLine.Option(paramLabel = "FILE", names = {"-c", "--config"}, description = "Config file, content is in JSON format.", defaultValue = "config.json", showDefaultValue = ALWAYS)
     private File configFile;
+
+    @CommandLine.Option(names = {"-r", "--ratio"}, description = "Ratio threshold when compare the patches of 2 commits", defaultValue = "0.9d", showDefaultValue = ALWAYS)
+    private double ratioThreshold;
+
+    @CommandLine.Option(names = {"-s", "--message-ratio"}, description = "Ratio threshold when compare the messages of 2 suspicious commits", defaultValue = "0.7d", showDefaultValue = ALWAYS)
+    private double messageRatioThreshold;
 
     @Override
     public Integer call() throws Exception {
@@ -108,12 +114,20 @@ public class Main implements Callable<Integer> {
                 return 1;
             }
         }
-        GitRevMissing gitRevMissing = GitRevMissing.create(gitRootURL, username, password);
+        GitRevMissing gitRevMissing = GitRevMissing.create(gitRootURL, username, password)
+                .setRatioThreshold(ratioThreshold)
+                .setMessageRatioThreshold(messageRatioThreshold)
+                ;
         MissingCommit missCommit = gitRevMissing.missingCommits(owner, repo, revA, revB, Instant.now().toEpochMilli() - month * GitRevMissing.MONTH_MILLI);
         if (missCommit.isClean()) {
             logger.info("Great, no missing commits found\n");
         } else {
-            logger.warn(missCommit.getCommits().size() + " commits were missing in " + revB + "\n");
+            if (missCommit.getCommits() != null && missCommit.getCommits().size() > 0) {
+                logger.warn(missCommit.getCommits().size() + " commits were missing in " + revB + "\n");
+            }
+            if (missCommit.getSuspiciousCommits() != null && missCommit.getSuspiciousCommits().size() > 0) {
+                logger.warn(missCommit.getSuspiciousCommits().size() + " commits were suspicious in " + revB + "\n");
+            }
             logger.warn(missCommit.toString() + "\n");
         }
         gitRevMissing.release();
