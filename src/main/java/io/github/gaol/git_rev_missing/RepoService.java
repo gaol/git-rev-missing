@@ -3,7 +3,6 @@ package io.github.gaol.git_rev_missing;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.commons.text.similarity.JaroWinklerDistance;
-import org.gitlab4j.api.CommitsApi;
 import org.gitlab4j.api.GitLabApi;
 import org.gitlab4j.api.GitLabApiException;
 import org.gitlab4j.api.models.Diff;
@@ -19,6 +18,8 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.net.URL;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 class RepoService {
 
@@ -31,6 +32,9 @@ class RepoService {
     private RepositoryService repoService;
     private GitLabApi gitLabApi;
     private GitHub github;
+
+    private final Map<String, List<GHCommit.File>> githubCachedFiles = new ConcurrentHashMap<>();
+    private final Map<String, List<Diff>> gitlabCachedFiles = new ConcurrentHashMap<>();
 
     public RepoService setRepoService(RepositoryService repoService) {
         this.repoService = repoService;
@@ -77,41 +81,44 @@ class RepoService {
         }
     }
 
-    private CompareResult.Result commitSameGitHub(String repoIdOrName, String sha1, String sha2, double ratioThreshold) {
+    private List<GHCommit.File> getGitHubCommitFiles(String repoId, String sha) {
         try {
-            GHRepository repository = github.getRepository(repoIdOrName);
+            GHRepository repository = github.getRepository(repoId);
             if (repository == null) {
-                throw new RuntimeException("No repository: " + repoIdOrName + " was found");
+                throw new RuntimeException("No repository: " + repoId + " was found");
             }
-            GHCommit commit1 = repository.getCommit(sha1);
-            GHCommit commit2 = repository.getCommit(sha2);
-            if (commit1 == null || commit2 == null) {
-                return CompareResult.Result.DIFFERENT;
+            GHCommit commit = repository.getCommit(sha);
+            if (commit == null) {
+                throw new RuntimeException("No commit: " + sha + " was found in " + repoId);
             }
-            List<GHCommit.File> files1 = commit1.getFiles();
-            List<GHCommit.File> files2 = commit2.getFiles();
-            if (files1.size() != files2.size()) {
-                return CompareResult.Result.DIFFERENT;
-            }
-            for (int i = 0; i < files1.size(); i ++) {
-                GHCommit.File f1 = files1.get(i);
-                GHCommit.File f2 = files2.get(i);
-                if (!f1.getPatch().equals(f2.getPatch())) {
-                    final String p1 = trimPatchLocation(f1.getPatch());
-                    final String p2 = trimPatchLocation(f2.getPatch());
-                    if (p1.equals(p2)) {
-                        return CompareResult.Result.SAME;
-                    }
-                    // check if only small differences, like conflicts resolved, or different locations about the diff
-                    double similar = similarness(p1, p2);
-                    if (similar > ratioThreshold) {
-                        return CompareResult.Result.SUSPICIOUS;
-                    }
-                    return CompareResult.Result.DIFFERENT;
-                }
-            }
+            return commit.getFiles();
         } catch (IOException e) {
             throw new RuntimeException("Failed to compare 2 commits", e);
+        }
+    }
+
+    private CompareResult.Result commitSameGitHub(String repoIdOrName, String sha1, String sha2, double ratioThreshold) {
+        List<GHCommit.File> files1 = githubCachedFiles.computeIfAbsent(repoIdOrName + "/" + sha1, v -> getGitHubCommitFiles(repoIdOrName, sha1));
+        List<GHCommit.File> files2 = githubCachedFiles.computeIfAbsent(repoIdOrName + "/" + sha2, v -> getGitHubCommitFiles(repoIdOrName, sha2));
+        if (files1.size() != files2.size()) {
+            return CompareResult.Result.DIFFERENT;
+        }
+        for (int i = 0; i < files1.size(); i ++) {
+            GHCommit.File f1 = files1.get(i);
+            GHCommit.File f2 = files2.get(i);
+            if (!f1.getPatch().equals(f2.getPatch())) {
+                final String p1 = trimPatchLocation(f1.getPatch());
+                final String p2 = trimPatchLocation(f2.getPatch());
+                if (p1.equals(p2)) {
+                    return CompareResult.Result.SAME;
+                }
+                // check if only small differences, like conflicts resolved, or different locations about the diff
+                double similar = similarness(p1, p2);
+                if (similar > ratioThreshold) {
+                    return CompareResult.Result.SUSPICIOUS;
+                }
+                return CompareResult.Result.DIFFERENT;
+            }
         }
         return CompareResult.Result.SAME;
     }
@@ -125,33 +132,40 @@ class RepoService {
     }
 
     private CompareResult.Result commitSameGitLab(String repoIdOrName, String sha1, String sha2, double ratioThreshold) {
-        try {
-            final CommitsApi commitsApi = gitLabApi.getCommitsApi();
-            List<Diff> diffs1 = commitsApi.getDiff(repoIdOrName, sha1);
-            List<Diff> diffs2 = commitsApi.getDiff(repoIdOrName, sha2);
-            if (diffs1.size() != diffs2.size()) {
+        List<Diff> diffs1 = gitlabCachedFiles.computeIfAbsent(repoIdOrName + "/" + sha1, v -> {
+            try {
+                return gitLabApi.getCommitsApi().getDiff(repoIdOrName, sha1);
+            } catch (GitLabApiException e) {
+                throw new RuntimeException("Failed to get differnece of commit: " + sha1, e);
+            }
+        });
+        List<Diff> diffs2 = gitlabCachedFiles.computeIfAbsent(repoIdOrName + "/" + sha2, v -> {
+            try {
+                return gitLabApi.getCommitsApi().getDiff(repoIdOrName, sha2);
+            } catch (GitLabApiException e) {
+                throw new RuntimeException("Failed to get differnece of commit: " + sha2, e);
+            }
+        });
+        if (diffs1.size() != diffs2.size()) {
+            return CompareResult.Result.DIFFERENT;
+        }
+        for (int i = 0; i < diffs1.size(); i ++) {
+            Diff diff1 = diffs1.get(i);
+            Diff diff2 = diffs2.get(i);
+            if (!diff1.getDiff().equals(diff2.getDiff())) {
+                final String p1 = trimPatchLocation(diff1.getDiff());
+                final String p2 = trimPatchLocation(diff2.getDiff());
+                if (p1.equals(p2)) {
+                    return CompareResult.Result.SAME;
+                }
+                // check if only small differences, like conflicts resolved, or different locations about the diff
+                double similar = similarness(p1, p2);
+                logger.debug("Similar between commit: " + sha1 + " and commit: " + sha2 + " is: " + similar);
+                if (similar > ratioThreshold) {
+                    return CompareResult.Result.SUSPICIOUS;
+                }
                 return CompareResult.Result.DIFFERENT;
             }
-            for (int i = 0; i < diffs1.size(); i ++) {
-                Diff diff1 = diffs1.get(i);
-                Diff diff2 = diffs2.get(i);
-                if (!diff1.getDiff().equals(diff2.getDiff())) {
-                    final String p1 = trimPatchLocation(diff1.getDiff());
-                    final String p2 = trimPatchLocation(diff2.getDiff());
-                    if (p1.equals(p2)) {
-                        return CompareResult.Result.SAME;
-                    }
-                    // check if only small differences, like conflicts resolved, or different locations about the diff
-                    double similar = similarness(p1, p2);
-                    logger.debug("Similar between commit: " + sha1 + " and commit: " + sha2 + " is: " + similar);
-                    if (similar > ratioThreshold) {
-                        return CompareResult.Result.SUSPICIOUS;
-                    }
-                    return CompareResult.Result.DIFFERENT;
-                }
-            }
-        } catch (GitLabApiException e) {
-            throw new RuntimeException("Failed to compare 2 commits", e);
         }
         return CompareResult.Result.SAME;
     }
@@ -164,6 +178,8 @@ class RepoService {
         if (repoService != null) {
             repoService.destroy();
         }
+        githubCachedFiles.clear();
+        gitlabCachedFiles.clear();
     }
 
 }
