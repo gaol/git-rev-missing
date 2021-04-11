@@ -15,9 +15,10 @@ the below steps:
 
 * If `SHA1` of the `commit` is found in `commitsB`, the `commit` is good.
 * If `SHA1` of the `commit` is **NOT** found in `commitsB`, it tries to find the commits in `commitsB` with the same message.
-* If not found, the `commit` is **missing**
 * For each commit found with same message, tries to compare the diffs between the 2 commits, if the diff is the same,
-the `commit` is good(like the ones using `rebase` or `cherry-pick`), otherwise, it is missing.
+the `commit` is good(like the ones using `rebase` or `cherry-pick`), otherwise, it is missing or suspicious depends on how different they are.
+* For each commit found with similar message(check the message difference ratio, > 0.7 by default), tries to compare the diffs between the 2 commits,
+if the diff is the same, the `commit` is considered good, otherwise, it is missing or suspicious depends on how different they are.
 
 > NOTE It does not support `gerrit/gitweb`, it supports `github.com` and `gitlab` sites.
 
