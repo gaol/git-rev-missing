@@ -81,10 +81,11 @@ public class Main implements Callable<Integer> {
             return 1;
         }
         if (username == null || password == null) {
-            if (!configFile.exists() && "config.json".equals(configFile.getName())) {
+            if (!configFile.exists() && !configFile.getPath().startsWith("/")) {
                 // try to check ~/config.json in home dir
-                configFile = Paths.get(System.getProperty("user.home"), "config.json").toFile();
+                configFile = Paths.get(System.getProperty("user.home"), configFile.getName()).toFile();
             }
+            logger.debug("Using Config File: " + configFile.getAbsolutePath());
             if (configFile.exists()) {
                 try (JsonReader jr = Json.createReader(new FileInputStream(configFile))) {
                     JsonObject jsonObject = jr.readObject();
