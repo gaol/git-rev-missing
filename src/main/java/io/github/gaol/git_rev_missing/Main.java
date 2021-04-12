@@ -65,11 +65,15 @@ public class Main implements Callable<Integer> {
         revA = compareURL.substring(lastSlash + 1, dotsIdx);
         final String gitRepoLink = compareURL.substring(0, lastSlash);
         URL gitRepoURL = new URL(gitRepoLink);
-        if (gitRepoURL.getHost().contains("gitlab")) {
+        if (versionLarger(revA, revB)) {
             // switch revA and revB
             String tmp = revA;
             revA = revB;
             revB = tmp;
+        }
+        if (revA.equals(revB)) {
+            logger.info("Nothing to compare for the same version");
+            return 0;
         }
         String[] repoID = RepositoryUtils.createRepositoryIdFromUrl(gitRepoURL).split("/");
         owner = repoID[0];
@@ -133,6 +137,48 @@ public class Main implements Callable<Integer> {
         }
         gitRevMissing.release();
         return 0;
+    }
+
+    // return true if revA is larger than revB, false otherwise
+    static boolean versionLarger(String revA, String revB) {
+        String[] partsA = revA.split("\\.");
+        String[] partsB = revB.split("\\.");
+        for (int i=0, j=0; i < partsA.length || j < partsB.length;) {
+            String partA = null, partB = null;
+            if (i < partsA.length) {
+                partA = partsA[i];
+            }
+            if (j < partsB.length) {
+                partB = partsB[i];
+            }
+            if (partA != null && partB == null) {
+                return true;
+            }
+            if (partA == null && partB != null) {
+                return false;
+            }
+            int r = partCompare(partA, partB);
+            if (r > 0) {
+                return true;
+            } else if (r < 0) {
+                return false;
+            }
+            i++;
+            j++;
+        }
+        return revA.compareTo(revB) > 0;
+    }
+
+    private static int partCompare(String p1, String p2) {
+        // part of the version can be like: digit[0-9], SP[0-9], Final-redhat-0000X(), 1-SNAPSHOT, etc
+        try {
+            int n1 = Integer.parseInt(p1);
+            int n2 = Integer.parseInt(p2);
+            return n1 - n2;
+        } catch (NumberFormatException e) {
+            // not a number
+        }
+        return p1.compareTo(p2);
     }
 
     public static void main(String[] args) {
