@@ -50,6 +50,9 @@ public class Main implements Callable<Integer> {
     @CommandLine.Option(names = {"-s", "--message-ratio"}, description = "Ratio threshold when compare the messages of 2 suspicious commits", defaultValue = "0.7d", showDefaultValue = ALWAYS)
     private double messageRatioThreshold;
 
+    @CommandLine.Option(names = {"-b", "--branch-compare"}, description = "If the compare URL is comparing a released tag with latest branch", defaultValue = "False", showDefaultValue = ALWAYS)
+    private boolean branch;
+
     @Override
     public Integer call() throws Exception {
         // for gitlab, like: https://gitlab.xxx.com/owner/repo/-/compare/revB...revA
@@ -65,7 +68,7 @@ public class Main implements Callable<Integer> {
         revA = compareURL.substring(lastSlash + 1, dotsIdx);
         final String gitRepoLink = compareURL.substring(0, lastSlash);
         URL gitRepoURL = new URL(gitRepoLink);
-        if (versionLarger(revA, revB)) {
+        if (!branch && versionLarger(revA, revB)) {
             // switch revA and revB
             String tmp = revA;
             revA = revB;

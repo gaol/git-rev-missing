@@ -56,8 +56,13 @@ public class TestApp {
       if (missCommit.isClean()) {
           logger.info("Great, no missing commits found");
       } else {
-          logger.warn("\n  " + missCommit.getCommits().size() + " commits were missing in " + revB + "\n");
-          logger.warn(missCommit.toString());
+            if (missCommit.getCommits() != null && missCommit.getCommits().size() > 0) {
+                logger.warn(missCommit.getCommits().size() + " commits were missing in " + revB + "\n");
+            }
+            if (missCommit.getSuspiciousCommits() != null && missCommit.getSuspiciousCommits().size() > 0) {
+                logger.warn(missCommit.getSuspiciousCommits().size() + " commits were suspicious in " + revB + "\n");
+            }
+            logger.warn(missCommit.toString() + "\n");
       }
       gitRevMissing.release();
     }
@@ -71,7 +76,7 @@ There is a script `git_rev_missing.sh` can be used to run directly like the foll
 ```shell script
 git clone https://github.com/gaol/git-rev-missing
 cd git-rev-missing
-./git_rev_missing.sh https://github.com/ihomeland/prtest/compare/revA...revB
+./git_rev_missing.sh -u my-username -p https://github.com/ihomeland/prtest/compare/revA...revB
 ```
 
 The above example tries to find commits in revA, but missing in revB of https://github.com/ihomeland/prtest.
@@ -122,7 +127,11 @@ Please refer to [config.json.example](./config.json.example) for the configurati
 }
 ```
 
-It has the same format as what Aphrodite has.
+You can put your configuration file(default name is: `config.json`) in the current directory or home directory.
+The configuration format is the same as what Aphrodite has.
 
-The script takes `config.json` as the default file in the current directory, if it does not exist, it tries to check
-`config.json` in current user's home directory.
+Please run
+
+> ./git_rev_missing.sh -h
+
+for more information
