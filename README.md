@@ -135,3 +135,8 @@ Please run
 > ./git_rev_missing.sh -h
 
 for more information
+
+
+## TODO
+* Add sub command to be extensible for other functionalities like compare 2 PRs to check if the back-ported one is up-to-date.
+
