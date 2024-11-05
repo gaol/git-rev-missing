@@ -96,7 +96,8 @@ class GitRevMissingImpl implements GitRevMissing {
     private boolean shouldOmit(Commit commit) {
         String message = commit.getMessage();
         return message.startsWith("Merge branch ") || message.startsWith("Next is ")
-                || message.startsWith("Prepare ") || message.startsWith("Merge pull request ");
+                || message.startsWith("Prepare ") || message.startsWith("Merge pull request ")
+                || message.equals("Repour");
     }
 
     private static String dateString(long since) {

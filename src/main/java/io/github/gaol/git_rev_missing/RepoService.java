@@ -15,22 +15,20 @@ import java.util.List;
 abstract class RepoService {
 
     static RepoService createRepoService(URL gitRootURL, String username, String password) {
-        RepositoryType repoType;
-        RepositoryService repositoryService;
         RepoService repoService;
         if (gitRootURL.getHost().toLowerCase().contains("github.com")) {
-            repoType = RepositoryType.GITHUB;
-            repositoryService = new GitHubRepositoryService();
+            RepositoryConfig config = new RepositoryConfig(gitRootURL.toString(), username, password, RepositoryType.GITHUB);
+            RepositoryService repositoryService = new GitHubRepositoryService();
+            repositoryService.init(config);
             repoService = new GitHubRepoService(repositoryService);
         } else if (gitRootURL.getHost().toLowerCase().contains("gitlab")) {
-            repoType = RepositoryType.GITLAB;
-            repositoryService = new GitLabRepositoryService();
+            RepositoryConfig config = new RepositoryConfig(gitRootURL.toString(), username, password, RepositoryType.GITLAB);
+            RepositoryService repositoryService = new GitLabRepositoryService();
+            repositoryService.init(config);
             repoService = new GitLabRepoService(repositoryService);
         } else {
             throw new RuntimeException("Not supported for Git service: " + gitRootURL);
         }
-        RepositoryConfig config = new RepositoryConfig(gitRootURL.toString(), username, password, repoType);
-        repositoryService.init(config);
         return repoService;
     }
 
