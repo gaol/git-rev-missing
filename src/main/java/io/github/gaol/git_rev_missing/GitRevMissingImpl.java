@@ -16,13 +16,10 @@ import static io.github.gaol.git_rev_missing.RepoUtils.gitCommitLink;
 
 class GitRevMissingImpl implements GitRevMissing {
 
-    private static final Log logger = LogFactory.getLog("g_r_m.impl");
+    private static final Log logger = LogFactory.getLog("git_rev_missing.impl");
 
     private final RepoService repoService;
-    private final String repoServiceKey;
     private final URL gitRootURL;
-    private final String username;
-    private final String password;
     private double ratioThreshold = 0.9d;
     private double messageRatioThreshold = 0.7d;
 
@@ -30,10 +27,7 @@ class GitRevMissingImpl implements GitRevMissing {
         super();
         Objects.requireNonNull(gitRootURL, "URL of the git service root must be provided");
         this.gitRootURL = gitRootURL;
-        repoServiceKey = this.gitRootURL.getHost() + ":" + user;
-        repoService = RepositoryServices.getInstance().getRepositoryService(this.gitRootURL, user, pass);
-        this.username = user;
-        this.password = pass;
+        repoService = RepoService.createRepoService(this.gitRootURL, user, pass);
     }
 
     @Override
@@ -57,17 +51,19 @@ class GitRevMissingImpl implements GitRevMissing {
     public MissingCommit missingCommits(String owner, String repo, String revA, String revB, long since) {
         try {
             URL repoURL = new URL(gitRootURL.toString() + "/" + owner + "/" + repo);
+            logger.debug("Checking commits between " + revA + " and " + revB + " in repository: " + repoURL);
             List<Commit> revAList = repoService.getCommitsSince(repoURL, revA, since);
             List<Commit> revBList = repoService.getCommitsSince(repoURL, revB, since);
+            String sinceStr = dateString(since);
             if (revAList.isEmpty()) {
-                logger.warn("# no commits found in revision: " + revA + " since: " + dateString(since));
+                logger.warn("# no commits found in revision: " + revA + " since: " + sinceStr);
             } else {
-                logger.info(revAList.size() + " commits are found in revision: " + revA + " since: " + dateString(since));
+                logger.info(revAList.size() + " commits are found in revision: " + revA + " since: " + sinceStr);
             }
             if (revBList.isEmpty()) {
-                logger.warn("# no commits found in revision: " + revB + " since: " + dateString(since));
+                logger.warn("# no commits found in revision: " + revB + " since: " + sinceStr);
             } else {
-                logger.info(revBList.size() + " commits are found in revision: " + revB + " since: " + dateString(since));
+                logger.info(revBList.size() + " commits are found in revision: " + revB + " since: " + sinceStr);
             }
             List<CommitInfo> missingInB = new ArrayList<>();
             List<CommitInfo> suspiciousCommits = new ArrayList<>();
@@ -93,18 +89,14 @@ class GitRevMissingImpl implements GitRevMissing {
             missingCommit.setSuspiciousCommits(suspiciousCommits);
             return missingCommit;
         } catch (MalformedURLException e) {
-            e.printStackTrace();
-            return null;
+            throw new RuntimeException(e);
         }
     }
 
     private boolean shouldOmit(Commit commit) {
         String message = commit.getMessage();
-        if (message.startsWith("Merge branch ") || message.startsWith("Next is ")
-                || message.startsWith("Prepare ") || message.startsWith("Merge pull request ")) {
-            return true;
-        }
-        return false;
+        return message.startsWith("Merge branch ") || message.startsWith("Next is ")
+                || message.startsWith("Prepare ") || message.startsWith("Merge pull request ");
     }
 
     private static String dateString(long since) {
@@ -121,7 +113,7 @@ class GitRevMissingImpl implements GitRevMissing {
             }
         }
         List<Commit> sameMessageCommits = sameMessageInList(commit, list);
-        if (sameMessageCommits.size() > 0) {
+        if (!sameMessageCommits.isEmpty()) {
             boolean suspicious = false;
             for (Commit c: sameMessageCommits) {
                 CompareResult.Result result = repoService.commitSame(repoID, commit.getSha(), c.getSha(), ratioThreshold);
@@ -137,10 +129,10 @@ class GitRevMissingImpl implements GitRevMissing {
             }
         }
         // sometime, the commit message got amended, but the patch content is the same, we consider that as the same commit
-        List<Commit> simiarMessage = similarMessageInList(commit, list, messageRatioThreshold);
-        if (simiarMessage.size() > 0) {
+        List<Commit> similarMessage = similarMessageInList(commit, list, messageRatioThreshold);
+        if (!similarMessage.isEmpty()) {
             boolean suspicious = false;
-            for (Commit c: simiarMessage) {
+            for (Commit c: similarMessage) {
                 CompareResult.Result result = repoService.commitSame(repoID, commit.getSha(), c.getSha(), ratioThreshold);
                 if (CompareResult.Result.SAME == result) {
                     return cr.setResult(CompareResult.Result.SAME);
@@ -181,8 +173,8 @@ class GitRevMissingImpl implements GitRevMissing {
     }
 
     @Override
-    public void release() {
-        RepositoryServices.getInstance().clear(repoServiceKey);
+    public void close() {
+        this.repoService.destroy();
     }
 
 }

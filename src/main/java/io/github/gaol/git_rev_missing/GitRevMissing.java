@@ -7,7 +7,7 @@ import java.net.URL;
  *
  * @author <a href="mailto:aoingl@gmail.com">Lin Gao</a>
  */
-public interface GitRevMissing {
+public interface GitRevMissing extends AutoCloseable {
 
     /**
      * milliseconds in a month
@@ -72,5 +72,5 @@ public interface GitRevMissing {
     /**
      * Release the resources
      */
-    void release();
+    void close();
 }

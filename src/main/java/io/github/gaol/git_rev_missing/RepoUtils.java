@@ -28,7 +28,7 @@ final class RepoUtils {
 
     // return the git root url, like: https://github.com
     static URL canonicGitRootURL(final URL gitURL) {
-        if (gitURL.getPath() == null || gitURL.getPath().equals("")) {
+        if (gitURL.getPath() == null || gitURL.getPath().isEmpty()) {
             return gitURL;
         }
         try {

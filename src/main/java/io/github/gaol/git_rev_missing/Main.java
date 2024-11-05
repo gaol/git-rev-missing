@@ -12,9 +12,9 @@ import javax.json.JsonArray;
 import javax.json.JsonObject;
 import javax.json.JsonReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.List;
@@ -27,10 +27,16 @@ import static picocli.CommandLine.Help.Visibility.ALWAYS;
         description = "Tool to list missing commits in a branch|tag compared to another one")
 public class Main implements Callable<Integer> {
 
-    private static final Log logger = LogFactory.getLog("g_r_m.main");
+    private static final Log logger = LogFactory.getLog("git_rev_missing.main");
 
-    @CommandLine.Parameters(index = "0", description = "The url of comparing the revisions, like: \nhttps://github.com/owner/repo/compare/1.0...1.1")
-    private String compareURL;
+    @CommandLine.Option(names = {"-r", "--repo"}, description = "The repository URL, like: https://github.com/owner/repo\"", required = true)
+    private String repoURL;
+
+    @CommandLine.Option(names = {"-a", "--r1"}, description = "The lower revision as the base", required = true)
+    private String r1;
+
+    @CommandLine.Option(names = {"-b", "--r2"}, description = "The higher revision as the target", required = true)
+    private String r2;
 
     @CommandLine.Option(names = {"-u", "--user"}, description = "username used to interact with git service")
     private String username;
@@ -44,57 +50,35 @@ public class Main implements Callable<Integer> {
     @CommandLine.Option(paramLabel = "FILE", names = {"-c", "--config"}, description = "Config file, content is in JSON format.", defaultValue = "config.json", showDefaultValue = ALWAYS)
     private File configFile;
 
-    @CommandLine.Option(names = {"-r", "--ratio"}, description = "Ratio threshold when compare the patches of 2 commits", defaultValue = "0.9d", showDefaultValue = ALWAYS)
-    private double ratioThreshold;
-
-    @CommandLine.Option(names = {"-s", "--message-ratio"}, description = "Ratio threshold when compare the messages of 2 suspicious commits", defaultValue = "0.7d", showDefaultValue = ALWAYS)
-    private double messageRatioThreshold;
-
-    @CommandLine.Option(names = {"-b", "--branch-compare"}, description = "If the compare URL is comparing a released tag with latest branch", defaultValue = "False", showDefaultValue = ALWAYS)
-    private boolean branch;
-
     @Override
     public Integer call() throws Exception {
-        // for gitlab, like: https://gitlab.xxx.com/owner/repo/-/compare/revB...revA
-        // for github, like: https://github.com/ihomeland/prtest/compare/1.0.0...1.0.2
-        String owner, repo, revA, revB;
-        int dotsIdx = compareURL.indexOf("...");
-        if (dotsIdx == -1) {
-            //TODO for gitweb, it is different
-            throw new RuntimeException("Cannot parse compareURL: " + compareURL);
-        }
-        revB = compareURL.substring(dotsIdx + 3);
-        int lastSlash = compareURL.lastIndexOf("/");
-        revA = compareURL.substring(lastSlash + 1, dotsIdx);
-        final String gitRepoLink = compareURL.substring(0, lastSlash);
-        URL gitRepoURL = new URL(gitRepoLink);
-        if (!branch && versionLarger(revA, revB)) {
-            // switch revA and revB
-            String tmp = revA;
-            revA = revB;
-            revB = tmp;
-        }
-        if (revA.equals(revB)) {
+        if (r1.equals(r2)) {
             logger.info("Nothing to compare for the same version");
             return 0;
         }
-        String[] repoID = RepositoryUtils.createRepositoryIdFromUrl(gitRepoURL).split("/");
-        owner = repoID[0];
-        repo = repoID[1];
+        URL gitRepoURL = new URL(repoURL);
+        String repositoryId = gitRepoURL.getPath();
+        if (repositoryId.startsWith("/")) {
+            repositoryId = repositoryId.substring(1);
+        }
+        logger.info("RepositoryId: " + repositoryId);
+        int idx = repositoryId.indexOf('/');
+        String owner = repositoryId.substring(0, idx);
+        String repo = repositoryId.substring(idx + 1);
         URL gitRootURL = RepoUtils.canonicGitRootURL(gitRepoURL);
-        logger.debug("gitRoot: " + gitRootURL + ", owner: " + owner + ", repo: " + repo + ", revA: " + revA + ", revB: " + revB);
+        logger.debug("gitRoot: " + gitRootURL + ", owner: " + owner + ", repo: " + repo + ", r1: " + r1 + ", r2: " + r2);
         if ((username == null || password == null) && configFile == null) {
             logger.error("No username/password nor config file specified.");
             return 1;
         }
         if (username == null || password == null) {
-            if (!configFile.exists() && !configFile.getPath().startsWith("/")) {
+            if (!configFile.exists() && !configFile.isAbsolute()) {
                 // try to check ~/config.json in home dir
                 configFile = Paths.get(System.getProperty("user.home"), configFile.getName()).toFile();
             }
             logger.debug("Using Config File: " + configFile.getAbsolutePath());
             if (configFile.exists()) {
-                try (JsonReader jr = Json.createReader(new FileInputStream(configFile))) {
+                try (JsonReader jr = Json.createReader(Files.newInputStream(configFile.toPath()))) {
                     JsonObject jsonObject = jr.readObject();
                     JsonArray configs = jsonObject.getJsonArray("repositoryConfigs");
                     if (configs == null) {
@@ -110,10 +94,11 @@ public class Main implements Callable<Integer> {
                                             json.getString("password", null),
                                             RepositoryType.valueOf(json.getString("type", null))))
                             .collect(Collectors.toList());
-                    repoConfigs.forEach(rc -> RepositoryServices.getInstance().add(rc));
                     RepositoryConfig config = RepoUtils.filterConfig(repoConfigs, gitRepoURL);
-                    username = config.getUsername();
-                    password = config.getPassword();
+                    if (config != null) {
+                        username = config.getUsername();
+                        password = config.getPassword();
+                    }
                 } catch (IOException e) {
                     throw new RuntimeException("Failed to read the config file", e);
                 }
@@ -122,66 +107,21 @@ public class Main implements Callable<Integer> {
                 return 1;
             }
         }
-        GitRevMissing gitRevMissing = GitRevMissing.create(gitRootURL, username, password)
-                .setRatioThreshold(ratioThreshold)
-                .setMessageRatioThreshold(messageRatioThreshold)
-                ;
-        MissingCommit missCommit = gitRevMissing.missingCommits(owner, repo, revA, revB, Instant.now().toEpochMilli() - month * GitRevMissing.MONTH_MILLI);
-        if (missCommit.isClean()) {
-            logger.info("Great, no missing commits found\n");
-        } else {
-            if (missCommit.getCommits() != null && missCommit.getCommits().size() > 0) {
-                logger.warn(missCommit.getCommits().size() + " commits were missing in " + revB + "\n");
+        try (GitRevMissing gitRevMissing = GitRevMissing.create(gitRootURL, username, password)) {
+            MissingCommit missCommit = gitRevMissing.missingCommits(owner, repo, r1, r2, Instant.now().toEpochMilli() - month * GitRevMissing.MONTH_MILLI);
+            if (missCommit.isClean()) {
+                logger.info("Great, no missing commits found\n");
+            } else {
+                if (missCommit.getCommits() != null && !missCommit.getCommits().isEmpty()) {
+                    logger.warn(missCommit.getCommits().size() + " commits were missing in " + r2 + "\n");
+                }
+                if (missCommit.getSuspiciousCommits() != null && !missCommit.getSuspiciousCommits().isEmpty()) {
+                    logger.warn(missCommit.getSuspiciousCommits().size() + " commits were suspicious in " + r1 + "\n");
+                }
+                logger.warn(missCommit + "\n");
             }
-            if (missCommit.getSuspiciousCommits() != null && missCommit.getSuspiciousCommits().size() > 0) {
-                logger.warn(missCommit.getSuspiciousCommits().size() + " commits were suspicious in " + revB + "\n");
-            }
-            logger.warn(missCommit.toString() + "\n");
         }
-        gitRevMissing.release();
         return 0;
-    }
-
-    // return true if revA is larger than revB, false otherwise
-    static boolean versionLarger(String revA, String revB) {
-        String[] partsA = revA.split("\\.");
-        String[] partsB = revB.split("\\.");
-        for (int i=0, j=0; i < partsA.length || j < partsB.length;) {
-            String partA = null, partB = null;
-            if (i < partsA.length) {
-                partA = partsA[i];
-            }
-            if (j < partsB.length) {
-                partB = partsB[i];
-            }
-            if (partA != null && partB == null) {
-                return true;
-            }
-            if (partA == null && partB != null) {
-                return false;
-            }
-            int r = partCompare(partA, partB);
-            if (r > 0) {
-                return true;
-            } else if (r < 0) {
-                return false;
-            }
-            i++;
-            j++;
-        }
-        return revA.compareTo(revB) > 0;
-    }
-
-    private static int partCompare(String p1, String p2) {
-        // part of the version can be like: digit[0-9], SP[0-9], Final-redhat-0000X(), 1-SNAPSHOT, etc
-        try {
-            int n1 = Integer.parseInt(p1);
-            int n2 = Integer.parseInt(p2);
-            return n1 - n2;
-        } catch (NumberFormatException e) {
-            // not a number
-        }
-        return p1.compareTo(p2);
     }
 
     public static void main(String[] args) {

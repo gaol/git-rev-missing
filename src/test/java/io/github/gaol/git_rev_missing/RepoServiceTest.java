@@ -55,17 +55,4 @@ public class RepoServiceTest {
 
     }
 
-    @Test
-    public void testVersionCompare() {
-        Assert.assertTrue(Main.versionLarger("2.0.31", "2.0.30"));
-        Assert.assertTrue(Main.versionLarger("2.1.0", "2.0.31"));
-        Assert.assertTrue(Main.versionLarger("2.1", "2.0.31"));
-        Assert.assertTrue(Main.versionLarger("2.1.0", "2.0"));
-        Assert.assertTrue(Main.versionLarger("2.0.31.SP1", "2.0.30.SP4"));
-        Assert.assertTrue(Main.versionLarger("2.0.31.SP4", "2.0.31.SP1"));
-        Assert.assertTrue(Main.versionLarger("2.0.11", "2.0.9"));
-        Assert.assertTrue(Main.versionLarger("5.0.3.Final-redhat-00007", "5.0.3.Final-redhat-00005"));
-        Assert.assertTrue(Main.versionLarger("5.0.3.Final-redhat-00010", "5.0.3.Final-redhat-00007"));
-    }
-
 }
