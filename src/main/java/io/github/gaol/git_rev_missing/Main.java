@@ -4,7 +4,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jboss.set.aphrodite.config.RepositoryConfig;
 import org.jboss.set.aphrodite.repository.services.common.RepositoryType;
-import org.jboss.set.aphrodite.repository.services.common.RepositoryUtils;
 import picocli.CommandLine;
 
 import javax.json.Json;
@@ -47,7 +46,7 @@ public class Main implements Callable<Integer> {
     @CommandLine.Option(names = {"-m", "--month"}, description = "how long to find commits, defaults to 1 year", defaultValue = "12", showDefaultValue = ALWAYS)
     private int month;
 
-    @CommandLine.Option(paramLabel = "FILE", names = {"-c", "--config"}, description = "Config file, content is in JSON format.", defaultValue = "config.json", showDefaultValue = ALWAYS)
+    @CommandLine.Option(paramLabel = "FILE", names = {"-c", "--config"}, description = "Config file, content is in JSON format.", defaultValue = "~/config.json", showDefaultValue = ALWAYS)
     private File configFile;
 
     @Override
@@ -57,16 +56,13 @@ public class Main implements Callable<Integer> {
             return 0;
         }
         URL gitRepoURL = new URL(repoURL);
-        String repositoryId = gitRepoURL.getPath();
-        if (repositoryId.startsWith("/")) {
-            repositoryId = repositoryId.substring(1);
+        String projectId = gitRepoURL.getPath();
+        if (projectId.startsWith("/")) {
+            projectId = projectId.substring(1);
         }
-        logger.info("RepositoryId: " + repositoryId);
-        int idx = repositoryId.indexOf('/');
-        String owner = repositoryId.substring(0, idx);
-        String repo = repositoryId.substring(idx + 1);
+        logger.info("projectId: " + projectId);
         URL gitRootURL = RepoUtils.canonicGitRootURL(gitRepoURL);
-        logger.debug("gitRoot: " + gitRootURL + ", owner: " + owner + ", repo: " + repo + ", r1: " + r1 + ", r2: " + r2);
+        logger.debug("gitRoot: " + gitRootURL + ", projectId: " + projectId + ", r1: " + r1 + ", r2: " + r2);
         if ((username == null || password == null) && configFile == null) {
             logger.error("No username/password nor config file specified.");
             return 1;
@@ -108,7 +104,7 @@ public class Main implements Callable<Integer> {
             }
         }
         try (GitRevMissing gitRevMissing = GitRevMissing.create(gitRootURL, username, password)) {
-            MissingCommit missCommit = gitRevMissing.missingCommits(owner, repo, r1, r2, Instant.now().toEpochMilli() - month * GitRevMissing.MONTH_MILLI);
+            MissingCommit missCommit = gitRevMissing.missingCommits(projectId, r1, r2, Instant.now().toEpochMilli() - month * GitRevMissing.MONTH_MILLI);
             if (missCommit.isClean()) {
                 logger.info("Great, no missing commits found\n");
             } else {

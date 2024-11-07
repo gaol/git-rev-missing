@@ -43,25 +43,25 @@ class GitRevMissingImpl implements GitRevMissing {
     }
 
     @Override
-    public MissingCommit missingCommits(String owner, String repo, String revA, String revB) {
-        return missingCommits(owner, repo, revA, revB, Instant.now().toEpochMilli() - 12 * MONTH_MILLI);
+    public MissingCommit missingCommits(String projectId, String revA, String revB) {
+        return missingCommits(projectId, revA, revB, Instant.now().toEpochMilli() - 12 * MONTH_MILLI);
     }
 
     @Override
-    public MissingCommit missingCommits(String owner, String repo, String revA, String revB, long since) {
+    public MissingCommit missingCommits(String projectId, String revA, String revB, long since) {
         try {
-            URL repoURL = new URL(gitRootURL.toString() + "/" + owner + "/" + repo);
+            URL repoURL = new URL(gitRootURL.toString() + "/" + projectId);
             logger.debug("Checking commits between " + revA + " and " + revB + " in repository: " + repoURL);
             List<Commit> revAList = repoService.getCommitsSince(repoURL, revA, since);
             List<Commit> revBList = repoService.getCommitsSince(repoURL, revB, since);
             String sinceStr = dateString(since);
             if (revAList.isEmpty()) {
-                logger.warn("# no commits found in revision: " + revA + " since: " + sinceStr);
+                logger.warn("# no commits found in revision: " + revA + " since: " + sinceStr + ", Please check if the revision: " + revA + " exists in " + projectId);
             } else {
                 logger.info(revAList.size() + " commits are found in revision: " + revA + " since: " + sinceStr);
             }
             if (revBList.isEmpty()) {
-                logger.warn("# no commits found in revision: " + revB + " since: " + sinceStr);
+                logger.warn("# no commits found in revision: " + revB + " since: " + sinceStr + ", Please check if the revision: " + revB + " exists in " + projectId);
             } else {
                 logger.info(revBList.size() + " commits are found in revision: " + revB + " since: " + sinceStr);
             }
@@ -69,7 +69,7 @@ class GitRevMissingImpl implements GitRevMissing {
             List<CommitInfo> suspiciousCommits = new ArrayList<>();
             for (Commit commitInA: revAList) {
                 if (!shouldOmit(commitInA)) {
-                    CompareResult result = commitInList(owner + "/" + repo, commitInA, revBList);
+                    CompareResult result = commitInList(projectId, commitInA, revBList);
                     if (result.getResult() == CompareResult.Result.DIFFERENT) {
                         CommitInfo commitInfo = new CommitInfo();
                         commitInfo.setCommit(commitInA);

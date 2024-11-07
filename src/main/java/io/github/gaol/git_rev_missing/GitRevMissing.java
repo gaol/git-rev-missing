@@ -47,27 +47,25 @@ public interface GitRevMissing extends AutoCloseable {
      * <p>
      *     It tried to find commits from 12 months ago.
      * </p>
-     * @param owner the owner of the repository
-     * @param repo the repository name
+     * @param projectId the projectId
      * @param revA revision A from which the commits are listed.
      * @param revB revision B to which the the commits may be missing.
      * @return a MissingCommit represents the result.
      */
-    MissingCommit missingCommits(String owner, String repo, String revA, String revB);
+    MissingCommit missingCommits(String projectId, String revA, String revB);
 
     /**
      * Tries to find commits in <code>revA</code>, but missing in <code>revB</code>.
      * <p>
      *     It tried to find commits from 12 months ago.
      * </p>
-     * @param owner the owner of the repository
-     * @param repo the repository name
+     * @param projectId the projectId
      * @param revA revision A from which the commits are listed.
      * @param revB revision B to which the the commits may be missing.
      * @param since time in milliseconds from when to find commits
      * @return a MissingCommit represents the result.
      */
-    MissingCommit missingCommits(String owner, String repo, String revA, String revB, long since);
+    MissingCommit missingCommits(String projectId, String revA, String revB, long since);
 
     /**
      * Release the resources

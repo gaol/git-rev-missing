@@ -15,7 +15,7 @@ public class MissCommitsTest {
 
     @Test
     public void testNoMissing() throws Exception {
-        MissingCommit missingCommit = testGitHub("ihomeland", "prtest", "1.0.0", "1.0.2");
+        MissingCommit missingCommit = testGitHub("ihomeland/prtest", "1.0.0", "1.0.2");
         if (missingCommit != null) {
             Assert.assertTrue(missingCommit.isClean());
         }
@@ -24,7 +24,7 @@ public class MissCommitsTest {
     @Test
     public void testOneMissing() throws Exception {
         // https://github.com/ihomeland/prtest, revA, revB, revC are used for the testing
-        MissingCommit missingCommit = testGitHub("ihomeland", "prtest", "revA", "revB");
+        MissingCommit missingCommit = testGitHub("ihomeland/prtest", "revA", "revB");
         if (missingCommit != null) {
             Assert.assertFalse(missingCommit.isClean());
             List<CommitInfo> commits = missingCommit.getCommits();
@@ -37,7 +37,7 @@ public class MissCommitsTest {
     @Test
     public void testNoMissingRebased() throws Exception {
         // revC branch has the commit rebased from revA, so that the sha1 is different, but content is the same
-        MissingCommit missingCommit = testGitHub("ihomeland", "prtest", "revA", "revC");
+        MissingCommit missingCommit = testGitHub("ihomeland/prtest", "revA", "revC");
         if (missingCommit != null) {
             Assert.assertTrue(missingCommit.isClean());
         }
@@ -58,7 +58,7 @@ public class MissCommitsTest {
         logger.info("TODO: Add test to test that commit messages are same, but the content is different, maybe conflicts");
     }
 
-    private MissingCommit testGitHub(String owner, String repo, String revA, String revB) throws IOException {
+    private MissingCommit testGitHub(String projectId, String revA, String revB) throws IOException {
         String username = TestUtils.getTestUserName();
         String password = TestUtils.getTestPassword();
         if (username == null || password == null) {
@@ -66,7 +66,7 @@ public class MissCommitsTest {
             return null;
         }
         GitRevMissing grm = GitRevMissing.create(new URL("https://github.com"), username, password);
-        return grm.missingCommits(owner, repo, revA, revB);
+        return grm.missingCommits(projectId, revA, revB);
     }
 
 }

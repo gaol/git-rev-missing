@@ -52,7 +52,7 @@ Then take the following example on how to call the API.
 public class TestApp {
     public static void main(String[] args) throws Exception {
       GitRevMissing gitRevMissing = GitRevMissing.create(new URL("https://github.com"), username, access_token);
-      MissingCommit missCommit = gitRevMissing.missingCommits("ihomeland", "prtest", "revA", "revB");
+      MissingCommit missCommit = gitRevMissing.missingCommits("ihomeland/prtest", "revA", "revB");
       if (missCommit.isClean()) {
           logger.info("Great, no missing commits found");
       } else {
@@ -62,7 +62,7 @@ public class TestApp {
             if (missCommit.getSuspiciousCommits() != null && missCommit.getSuspiciousCommits().size() > 0) {
                 logger.warn(missCommit.getSuspiciousCommits().size() + " commits were suspicious in " + revB + "\n");
             }
-            logger.warn(missCommit.toString() + "\n");
+            logger.warn(missCommit + "\n");
       }
       gitRevMissing.release();
     }
