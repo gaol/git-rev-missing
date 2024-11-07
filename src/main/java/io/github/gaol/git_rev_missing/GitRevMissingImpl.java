@@ -1,23 +1,24 @@
 package io.github.gaol.git_rev_missing;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.jboss.set.aphrodite.domain.Commit;
 
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import static io.github.gaol.git_rev_missing.RepoUtils.gitCommitLink;
 
 class GitRevMissingImpl implements GitRevMissing {
 
-    private static final Log logger = LogFactory.getLog("git_rev_missing.impl");
+    private static final Logger logger = Logger.getLogger(GitRevMissingImpl.class.getName());
 
     private final RepoService repoService;
     private final URL gitRootURL;
@@ -62,12 +63,12 @@ class GitRevMissingImpl implements GitRevMissing {
             List<Commit> revBList = repoService.getCommitsSince(repoURL, revB, since);
             String sinceStr = dateString(since);
             if (revAList.isEmpty()) {
-                logger.warn("# no commits found in revision: " + revA + " since: " + sinceStr + ", Please check if the revision: " + revA + " exists in " + projectId);
+                logger.log(Level.WARNING, "# no commits found in revision: " + revA + " since: " + sinceStr + ", Please check if the revision: " + revA + " exists in " + projectId);
             } else {
                 logger.info(revAList.size() + " commits are found in revision: " + revA + " since: " + sinceStr);
             }
             if (revBList.isEmpty()) {
-                logger.warn("# no commits found in revision: " + revB + " since: " + sinceStr + ", Please check if the revision: " + revB + " exists in " + projectId);
+                logger.log(Level.WARNING, "# no commits found in revision: " + revB + " since: " + sinceStr + ", Please check if the revision: " + revB + " exists in " + projectId);
             } else {
                 logger.info(revBList.size() + " commits are found in revision: " + revB + " since: " + sinceStr);
             }
@@ -109,7 +110,7 @@ class GitRevMissingImpl implements GitRevMissing {
     private static String dateString(long since) {
         Date date = new Date();
         date.setTime(since);
-        return Instant.ofEpochMilli(since).toString();
+        return DateTimeFormatter.ISO_LOCAL_DATE.format(Instant.ofEpochMilli(since));
     }
 
     private CompareResult commitInList(String repoID, Commit commit, List<Commit> list) {

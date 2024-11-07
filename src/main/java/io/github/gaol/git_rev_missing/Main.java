@@ -1,7 +1,5 @@
 package io.github.gaol.git_rev_missing;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.jboss.set.aphrodite.config.RepositoryConfig;
 import org.jboss.set.aphrodite.repository.services.common.RepositoryType;
 import picocli.CommandLine;
@@ -18,6 +16,8 @@ import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import static picocli.CommandLine.Help.Visibility.ALWAYS;
@@ -26,9 +26,9 @@ import static picocli.CommandLine.Help.Visibility.ALWAYS;
         description = "Tool to list missing commits in a branch|tag compared to another one")
 public class Main implements Callable<Integer> {
 
-    private static final Log logger = LogFactory.getLog("git_rev_missing.main");
+    private static final Logger logger = Logger.getLogger(Main.class.getName());
 
-    @CommandLine.Option(names = {"-r", "--repo"}, description = "The repository URL, like: https://github.com/owner/repo\"", required = true)
+    @CommandLine.Option(names = {"-r", "--repo"}, description = "The repository URL, like: https://github.com/owner/repo", required = true)
     private String repoURL;
 
     @CommandLine.Option(names = {"-a", "--r1"}, description = "The lower revision as the base", required = true)
@@ -59,9 +59,9 @@ public class Main implements Callable<Integer> {
         final String projectId = RepoUtils.projectId(gitRepoURL);
         logger.info("projectId: " + projectId);
         URL gitRootURL = RepoUtils.canonicGitRootURL(gitRepoURL);
-        logger.debug("gitRoot: " + gitRootURL + ", projectId: " + projectId + ", r1: " + r1 + ", r2: " + r2);
+        logger.log(Level.FINE, "gitRoot: " + gitRootURL + ", projectId: " + projectId + ", r1: " + r1 + ", r2: " + r2);
         if ((username == null || password == null) && configFile == null) {
-            logger.error("No username/password nor config file specified.");
+            logger.log(Level.SEVERE, "No username/password nor config file specified.");
             return 1;
         }
         if (username == null || password == null) {
@@ -69,13 +69,13 @@ public class Main implements Callable<Integer> {
                 // try to check ~/config.json in home dir
                 configFile = Paths.get(System.getProperty("user.home"), configFile.getName()).toFile();
             }
-            logger.debug("Using Config File: " + configFile.getAbsolutePath());
+            logger.log(Level.FINE, "Using Config File: " + configFile.getAbsolutePath());
             if (configFile.exists()) {
                 try (JsonReader jr = Json.createReader(Files.newInputStream(configFile.toPath()))) {
                     JsonObject jsonObject = jr.readObject();
                     JsonArray configs = jsonObject.getJsonArray("repositoryConfigs");
                     if (configs == null) {
-                        logger.error("No repositoryConfigs found in the config file");
+                        logger.log(Level.SEVERE, "No repositoryConfigs found in the config file");
                         return 1;
                     }
                     List<RepositoryConfig> repoConfigs = configs.stream()
@@ -96,7 +96,7 @@ public class Main implements Callable<Integer> {
                     throw new RuntimeException("Failed to read the config file", e);
                 }
             } else {
-                logger.error("No a valid config file: " + configFile);
+                logger.log(Level.SEVERE, "No a valid config file: " + configFile);
                 return 1;
             }
         }
@@ -106,12 +106,12 @@ public class Main implements Callable<Integer> {
                 logger.info("Great, no missing commits found\n");
             } else {
                 if (missCommit.getCommits() != null && !missCommit.getCommits().isEmpty()) {
-                    logger.warn(missCommit.getCommits().size() + " commits were missing in " + r2 + "\n");
+                    logger.log(Level.WARNING, missCommit.getCommits().size() + " commits were missing in " + r2 + "\n");
                 }
                 if (missCommit.getSuspiciousCommits() != null && !missCommit.getSuspiciousCommits().isEmpty()) {
-                    logger.warn(missCommit.getSuspiciousCommits().size() + " commits were suspicious in " + r1 + "\n");
+                    logger.log(Level.WARNING, missCommit.getSuspiciousCommits().size() + " commits were suspicious in " + r1 + "\n");
                 }
-                logger.warn(missCommit + "\n");
+                logger.log(Level.WARNING, missCommit + "\n");
             }
         }
         return 0;
