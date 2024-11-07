@@ -76,7 +76,14 @@ There is a script `git_rev_missing.sh` can be used to run directly like the foll
 ```shell script
 git clone https://github.com/gaol/git-rev-missing
 cd git-rev-missing
+mvn clean install -DskipTests
 ./git_rev_missing.sh -u my-username -p -r https://github.com/ihomeland/prtest/compare/ -a revA -b revB
+```
+#### Download the built jar from GitHub release
+
+```shell
+wget -O git-rev-missing.jar https://github.com/gaol/git-rev-missing/releases/download/0.0.3/git-rev-missing-0.0.3-app.jar
+java -jar git-rev-missing.jar -h
 ```
 
 The above example tries to find commits in revA, but missing in revB of https://github.com/ihomeland/prtest.
