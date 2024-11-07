@@ -2,6 +2,7 @@ package io.github.gaol.git_rev_missing;
 
 import org.jboss.set.aphrodite.config.RepositoryConfig;
 import org.jboss.set.aphrodite.repository.services.common.RepositoryUtils;
+import org.jboss.set.aphrodite.repository.services.gitlab.GitLabUtils;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -18,12 +19,8 @@ final class RepoUtils {
         return null;
     }
 
-    static String repoKey(String host, String username) {
-        return host + ":" + username;
-    }
-
-    static String repoKey(RepositoryConfig config) {
-        return repoKey(canonicRepoURL(config.getUrl()).getHost(), config.getUsername());
+    static String projectId(URL gitRepoURL) {
+        return GitLabUtils.getProjectIdFromURL(gitRepoURL);
     }
 
     // return the git root url, like: https://github.com

@@ -56,10 +56,7 @@ public class Main implements Callable<Integer> {
             return 0;
         }
         URL gitRepoURL = new URL(repoURL);
-        String projectId = gitRepoURL.getPath();
-        if (projectId.startsWith("/")) {
-            projectId = projectId.substring(1);
-        }
+        final String projectId = RepoUtils.projectId(gitRepoURL);
         logger.info("projectId: " + projectId);
         URL gitRootURL = RepoUtils.canonicGitRootURL(gitRepoURL);
         logger.debug("gitRoot: " + gitRootURL + ", projectId: " + projectId + ", r1: " + r1 + ", r2: " + r2);

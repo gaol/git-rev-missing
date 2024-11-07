@@ -85,7 +85,10 @@ public class GitHubRepoService extends RepoService {
 
     @Override
     void destroy() {
-        super.destroy();
-        this.githubCachedFiles.clear();
+        try {
+            super.destroy();
+        } finally {
+            this.githubCachedFiles.clear();
+        }
     }
 }

@@ -80,7 +80,10 @@ public class GitLabRepoService extends RepoService {
 
     @Override
     void destroy() {
-        super.destroy();
-        this.gitlabCachedFiles.clear();
+        try {
+            super.destroy();
+        } finally {
+            this.gitlabCachedFiles.clear();
+        }
     }
 }

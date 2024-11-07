@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static io.github.gaol.git_rev_missing.RepoUtils.gitCommitLink;
 
@@ -22,12 +23,17 @@ class GitRevMissingImpl implements GitRevMissing {
     private final URL gitRootURL;
     private double ratioThreshold = 0.9d;
     private double messageRatioThreshold = 0.7d;
+    private final String cacheKey;
+
+    private static final ConcurrentHashMap<String, RepoService> repoServices = new ConcurrentHashMap<>();
 
     GitRevMissingImpl(URL gitRootURL, String user, String pass) {
         super();
         Objects.requireNonNull(gitRootURL, "URL of the git service root must be provided");
+        Objects.requireNonNull(gitRootURL.getHost(), "Host of the git service root must be provided");
         this.gitRootURL = gitRootURL;
-        repoService = RepoService.createRepoService(this.gitRootURL, user, pass);
+        cacheKey = user + "@" + gitRootURL.getHost();
+        repoService = repoServices.computeIfAbsent(cacheKey, k -> RepoService.createRepoService(this.gitRootURL, user, pass));
     }
 
     @Override
@@ -51,7 +57,7 @@ class GitRevMissingImpl implements GitRevMissing {
     public MissingCommit missingCommits(String projectId, String revA, String revB, long since) {
         try {
             URL repoURL = new URL(gitRootURL.toString() + "/" + projectId);
-            logger.debug("Checking commits between " + revA + " and " + revB + " in repository: " + repoURL);
+            logger.info("Checking commits between " + revA + " and " + revB + " in repository: " + repoURL);
             List<Commit> revAList = repoService.getCommitsSince(repoURL, revA, since);
             List<Commit> revBList = repoService.getCommitsSince(repoURL, revB, since);
             String sinceStr = dateString(since);
@@ -175,7 +181,11 @@ class GitRevMissingImpl implements GitRevMissing {
 
     @Override
     public void close() {
-        this.repoService.destroy();
+        try {
+            this.repoService.destroy();
+        } finally {
+            repoServices.remove(cacheKey);
+        }
     }
 
 }

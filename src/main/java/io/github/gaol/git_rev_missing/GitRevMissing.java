@@ -57,7 +57,7 @@ public interface GitRevMissing extends AutoCloseable {
     /**
      * Tries to find commits in <code>revA</code>, but missing in <code>revB</code>.
      * <p>
-     *     It tried to find commits from 12 months ago.
+     *     It tried to find commits from <i>since</i> milliseconds ago.
      * </p>
      * @param projectId the projectId
      * @param revA revision A from which the commits are listed.
