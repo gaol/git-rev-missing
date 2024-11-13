@@ -3,12 +3,12 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>io.github.gaol</groupId>
-        <artifactId>java-parent</artifactId>
-        <version>1.0.1</version>
+        <groupId>org.jboss</groupId>
+        <artifactId>jboss-parent</artifactId>
+        <version>43</version>
     </parent>
 
-	<artifactId>git-rev-missing</artifactId>
+    <artifactId>git-rev-missing</artifactId>
     <version>0.0.4-SNAPSHOT</version>
     <packaging>jar</packaging>
     <name>Git Revision Missing</name>
@@ -120,6 +120,19 @@
         <repository>
             <id>atlassian-public</id>
             <url>https://maven.atlassian.com/maven-external</url>
+            <snapshots>
+                <enabled>true</enabled>
+                <checksumPolicy>warn</checksumPolicy>
+            </snapshots>
+            <releases>
+                <enabled>true</enabled>
+                <checksumPolicy>warn</checksumPolicy>
+            </releases>
+        </repository>
+        <repository>
+            <id>jboss-public-repository-group</id>
+            <name>JBoss Public Maven Repository Group</name>
+            <url>https://repository.jboss.org/nexus/content/groups/public-jboss/</url>
             <snapshots>
                 <enabled>true</enabled>
                 <checksumPolicy>warn</checksumPolicy>
