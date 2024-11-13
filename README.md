@@ -82,7 +82,7 @@ mvn clean install -DskipTests
 #### Download the built jar from GitHub release
 
 ```shell
-wget -O git-rev-missing.jar https://github.com/gaol/git-rev-missing/releases/download/0.0.3/git-rev-missing-0.0.3-app.jar
+wget -O git-rev-missing.jar https://github.com/gaol/git-rev-missing/releases/download/0.0.5/git-rev-missing-0.0.5-app.jar
 java -jar git-rev-missing.jar -h
 ```
 
