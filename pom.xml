@@ -8,7 +8,7 @@
         <version>1.0.1</version>
     </parent>
     <artifactId>git-rev-missing</artifactId>
-    <version>0.0.5</version>
+    <version>0.0.6-SNAPSHOT</version>
     <packaging>jar</packaging>
     <name>Git Revision Missing</name>
     <description>A simple Java API to list missing commits between 2 versions</description>
@@ -30,7 +30,7 @@
 		<connection>scm:git:git@github.com:gaol/git-rev-missing.git</connection>
 		<developerConnection>scm:git:git@github.com:gaol/git-rev-missing.git</developerConnection>
 		<url>https://github.com/gaol/git-rev-missing</url>
-		<tag>0.0.5</tag>
+		<tag>HEAD</tag>
 	</scm>
 
 	<developers>
