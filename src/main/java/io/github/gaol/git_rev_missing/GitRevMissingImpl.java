@@ -5,9 +5,10 @@ import org.jboss.set.aphrodite.domain.Commit;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -18,7 +19,9 @@ import static io.github.gaol.git_rev_missing.RepoUtils.gitCommitLink;
 
 class GitRevMissingImpl implements GitRevMissing {
 
-    private static final Logger logger = Logger.getLogger(GitRevMissingImpl.class.getName());
+    private static final Logger logger = Logger.getLogger("g_r_m.impl");
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    static final long MONTH_MILLI = 2629800000L;
 
     private final RepoService repoService;
     private final URL gitRootURL;
@@ -108,9 +111,10 @@ class GitRevMissingImpl implements GitRevMissing {
     }
 
     private static String dateString(long since) {
-        Date date = new Date();
-        date.setTime(since);
-        return DateTimeFormatter.ISO_LOCAL_DATE.format(Instant.ofEpochMilli(since));
+        LocalDate date = Instant.ofEpochMilli(since)
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate();
+        return date.format(DATE_TIME_FORMATTER);
     }
 
     private CompareResult commitInList(String repoID, Commit commit, List<Commit> list) {

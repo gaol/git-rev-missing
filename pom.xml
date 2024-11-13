@@ -15,7 +15,7 @@
     <description>A simple Java API to list missing commits between 2 versions</description>
 
     <properties>
-        <aphrodite.version>0.7.19.Final</aphrodite.version>
+        <aphrodite.version>0.7.20.Final</aphrodite.version>
         <testng.version>6.8.7</testng.version>
     </properties>
 

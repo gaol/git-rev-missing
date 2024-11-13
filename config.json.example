@@ -2,14 +2,14 @@
   "repositoryConfigs": [
     {
       "url": "https://github.com/",
-      "username": "my-user-name",
-      "password": "my-access-token",
+      "username": "<USER-NAME>",
+      "password": "<ACCESS-TOKEN>",
       "type": "GITHUB"
     },
     {
       "url": "https://gitlab.xxx.yyy.com/",
-      "username": "my-user-name",
-      "password": "my-access-token",
+      "username": "<USER-NAME>",
+      "password": "<ACCESS-TOKEN>",
       "type": "GITLAB"
     }
   ]

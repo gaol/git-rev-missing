@@ -77,7 +77,7 @@ There is a script `git_rev_missing.sh` can be used to run directly like the foll
 git clone https://github.com/gaol/git-rev-missing
 cd git-rev-missing
 mvn clean install -DskipTests
-./git_rev_missing.sh -u my-username -p -r https://github.com/ihomeland/prtest/compare/ -a revA -b revB
+./git_rev_missing.sh -r https://github.com/ihomeland/prtest/compare/ -a revA -b revB
 ```
 #### Download the built jar from GitHub release
 

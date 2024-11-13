@@ -10,6 +10,7 @@ import javax.json.JsonObject;
 import javax.json.JsonReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -17,6 +18,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.logging.Level;
+import java.util.logging.LogManager;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -26,15 +28,27 @@ import static picocli.CommandLine.Help.Visibility.ALWAYS;
         description = "Tool to list missing commits in a branch|tag compared to another one")
 public class Main implements Callable<Integer> {
 
-    private static final Logger logger = Logger.getLogger(Main.class.getName());
+    static {
+        try (InputStream inputStream = Main.class.getClassLoader().getResourceAsStream("logging.properties")) {
+            if (inputStream == null) {
+                System.err.println("Could not find logging.properties inside the JAR.");
+            } else {
+                LogManager.getLogManager().readConfiguration(inputStream);
+            }
+        } catch (IOException e) {
+            System.err.println("Error loading logging configuration.");
+        }
+    }
 
-    @CommandLine.Option(names = {"-r", "--repo"}, description = "The repository URL, like: https://github.com/owner/repo", required = true)
+    private static final Logger logger = Logger.getLogger("g_r_m.main");
+
+    @CommandLine.Option(names = {"-r", "--repo"}, description = "The repository URL, like: https://github.com/owner/repo", required = true, order = 1)
     private String repoURL;
 
-    @CommandLine.Option(names = {"-a", "--r1"}, description = "The lower revision as the base", required = true)
+    @CommandLine.Option(names = {"-a", "--r1"}, description = "The lower revision as the base", required = true, order = 2)
     private String r1;
 
-    @CommandLine.Option(names = {"-b", "--r2"}, description = "The higher revision as the target", required = true)
+    @CommandLine.Option(names = {"-b", "--r2"}, description = "The higher revision as the target", required = true, order = 3)
     private String r2;
 
     @CommandLine.Option(names = {"-u", "--user"}, description = "username used to interact with git service")
@@ -46,7 +60,7 @@ public class Main implements Callable<Integer> {
     @CommandLine.Option(names = {"-m", "--month"}, description = "how long to find commits, defaults to 1 year", defaultValue = "12", showDefaultValue = ALWAYS)
     private int month;
 
-    @CommandLine.Option(paramLabel = "FILE", names = {"-c", "--config"}, description = "Config file, content is in JSON format.", defaultValue = "~/config.json", showDefaultValue = ALWAYS)
+    @CommandLine.Option(paramLabel = "FILE", names = {"-c", "--config"}, description = "Config file, content is in JSON format. See example from ./config.json.example", defaultValue = "~/config.json", showDefaultValue = ALWAYS)
     private File configFile;
 
     @Override
@@ -101,7 +115,7 @@ public class Main implements Callable<Integer> {
             }
         }
         try (GitRevMissing gitRevMissing = GitRevMissing.create(gitRootURL, username, password)) {
-            MissingCommit missCommit = gitRevMissing.missingCommits(projectId, r1, r2, Instant.now().toEpochMilli() - month * GitRevMissing.MONTH_MILLI);
+            MissingCommit missCommit = gitRevMissing.missingCommits(projectId, r1, r2, Instant.now().toEpochMilli() - month * GitRevMissingImpl.MONTH_MILLI);
             if (missCommit.isClean()) {
                 logger.info("Great, no missing commits found\n");
             } else {

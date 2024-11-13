@@ -10,11 +10,6 @@ import java.net.URL;
 public interface GitRevMissing extends AutoCloseable {
 
     /**
-     * milliseconds in a month
-      */
-    long MONTH_MILLI = 2629800000L;
-
-    /**
      * Creates the <code>GitRevMissing</code> instance
      *
      * @param gitRootURL the git service URL, it must be the root url of the git service.
@@ -49,7 +44,7 @@ public interface GitRevMissing extends AutoCloseable {
      * </p>
      * @param projectId the projectId
      * @param revA revision A from which the commits are listed.
-     * @param revB revision B to which the the commits may be missing.
+     * @param revB revision B to which the commits may be missing.
      * @return a MissingCommit represents the result.
      */
     MissingCommit missingCommits(String projectId, String revA, String revB);
@@ -61,7 +56,7 @@ public interface GitRevMissing extends AutoCloseable {
      * </p>
      * @param projectId the projectId
      * @param revA revision A from which the commits are listed.
-     * @param revB revision B to which the the commits may be missing.
+     * @param revB revision B to which the commits may be missing.
      * @param since time in milliseconds from when to find commits
      * @return a MissingCommit represents the result.
      */
