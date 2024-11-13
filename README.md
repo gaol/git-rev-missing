@@ -143,6 +143,12 @@ Please run
 
 for more information
 
+## How to release to maven central
+
+```shell
+mvn -Prelease release:prepare
+mvn -Prelease release:forform
+```
 
 ## TODO
 * Add sub command to be extensible for other functionalities like compare 2 PRs to check if the back-ported one is up-to-date.
