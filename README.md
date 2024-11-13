@@ -147,7 +147,7 @@ for more information
 
 ```shell
 mvn -Prelease release:prepare
-mvn -Prelease release:forform
+mvn -Prelease release:perform
 ```
 
 ## TODO
